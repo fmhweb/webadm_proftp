@@ -23,7 +23,7 @@
 <body>
 <?php
 	require_once("includes/session.php");
-	if(isset($_SESSION['login']['username'])){
+	if(!empty($_SESSION['login']['username'])){
 ?>
 	<div class="menu">
 		<table>

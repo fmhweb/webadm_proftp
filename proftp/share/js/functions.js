@@ -20,6 +20,8 @@ var imgPlus = new Image();
 imgPlus.src = "images/plus.gif";
 var imgUser = new Image(); 
 imgUser.src = "images/user.png";
+var imgArrowRefresh = new Image(); 
+imgArrowRefresh.src = "images/arrow_refresh.png";
 
 var current_pagename = "home";
 var prev_pagename = "home";

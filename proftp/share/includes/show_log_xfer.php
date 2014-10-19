@@ -72,7 +72,7 @@
 			$graphinterval = 604800;
 			$graphintervalstr = "Weeks";
 		}
-		elseif($timediff > 86400 * 4){#4 Day
+		elseif($timediff > 86400 * 2){#2 Day
 			$graphinterval = 86400;
 			$graphintervalstr = "Days";
 		}
@@ -95,35 +95,44 @@
 		$graphlabes = "";
 		$graphdata = "";
 		$count = 0;
-		$query = "SELECT DATE(time) AS date, SEC_TO_TIME(TIME_TO_SEC(time) - TIME_TO_SEC(time)%($graphinterval)) AS intervals, COUNT(*) AS count FROM xfer$query_ext GROUP BY intervals ORDER BY intervals DESC";
+		$query = "SELECT DATE(time) AS date, SEC_TO_TIME(TIME_TO_SEC(time) - TIME_TO_SEC(time)%($graphinterval)) AS intervals, COUNT(*) AS count FROM xfer$query_ext GROUP BY intervals ORDER BY intervals;";
 		$result = $db->query($query);
 		$starttime = "";
 		if($db->num_rows($result) > 0){
 			while($array = $db->fetch_array_assoc($result)){
 				$time = strtotime($array['date']." ".$array['intervals']);
 				if(!$starttime){$starttime = $time;}
-				$graphbuild[intval($time)] = $array['count'];
+				$graphbuild[intval($time)]['time'] = intval($time);
+				$graphbuild[intval($time)]['val'] = $array['count'];
 			}
 		}
 		if(!$starttime){$starttime = $timebegin;}
 		for($i = $starttime; $i >= $timebegin; $i -= $graphinterval){
 			if(!isset($graphbuild[$i])){
-				$graphbuild[$i] = 0;
+				$graphbuild[$i]['time'] = $i;
+				$graphbuild[$i]['val'] = 0;
 			}
 		}
 		for($i = $starttime; $i <= $timeend; $i += $graphinterval){
 			if(!isset($graphbuild[$i])){
-				$graphbuild[$i] = 0;
+				$graphbuild[$i]['time'] = $i;
+				$graphbuild[$i]['val'] = 0;
 			}
 		}
 
-		foreach($graphbuild as $label => $data){
+		sort($graphbuild);
+		foreach($graphbuild as $data){
 			if($graphlabes){
 				$graphlabes .= ",";
 				$graphdata .= ",";
 			}
-			$graphlabes .= '"'.date("Y-m-d H:i:00", $label).'"';
-			$graphdata .= $data;
+			if($timediff > 86400 * 2){
+				$graphlabes .= '"'.date("Y-m-d", $data['time']).'"';
+			}
+			else{
+				$graphlabes .= '"'.date("Y-m-d H:i:00", $data['time']).'"';
+			}
+			$graphdata .= $data['val'];
 		}
 
 		//Log

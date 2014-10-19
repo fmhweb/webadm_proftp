@@ -47,16 +47,17 @@
 			if($db->num_rows($result) > 0){
 				echo "
 	<div class=\"block\">
-	<table align=\"center\" class=\"page\">
-		<tr>
+	<br>
 ";
 			showPageIndex($_POST['pagename'],$_POST['tabname'],$_POST['page'],$pages,$_POST['action']);
 				echo "
-		</tr>
-";
-				echo "
-	</table>
 	<br>
+	<div class=\"options\">
+		<a href=\"#\" onclick=\"\">
+			<img src=\"images/arrow_refresh.png\" />
+			Rescan tree
+		</a>
+	</div>
 	<ul class=\"folder\">
 ";
 				while($array = $db->fetch_array_assoc($result)){
@@ -80,6 +81,10 @@
 				}
 				echo "
 	</ul>
+";
+				showPageIndex($_POST['pagename'],$_POST['tabname'],$_POST['page'],$pages,$_POST['action']);
+				echo "
+		<br>
 	</div>
 ";
 				if($_POST['action'] == 1){
