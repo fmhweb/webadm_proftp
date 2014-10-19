@@ -1,0 +1,344 @@
+#!/usr/bin/perl -w
+
+## ======================== ##
+## Author:  Moritz Hunger   ##
+## Email:   fmhspam@live.de ##
+## Date:                    ##
+## Version: 1.0             ##
+## ======================== ##
+
+## Info:
+
+use strict;
+use warnings;
+use File::Basename;
+use Getopt::Long;
+use Pod::Usage;
+use DBI;
+use Data::Dumper;
+use Log::Log4perl;
+use XML::Simple;
+use WebADM::Folder;
+use WebADM::Proftp::Folder;
+use WebADM::Proftp::Monitoring;
+
+use vars qw(
+	$opt_timeout
+        $opt_help
+);
+
+our $opt_verbose = undef;
+our %time = ();
+$time{'chart'}{'taken'} = 0;
+$time{'chart'}{'max'} = 3;
+$time{'loop'}{'sleep'} = 5;
+my %paths = ();
+$paths{'log'} = "/var/log/webadm/proftp.log";
+check_file_dir($paths{'log'});
+
+my $progname = basename($0);
+local $SIG{ALRM} = sub{
+        print "Timeout after $opt_timeout seconds";
+        exit 1;
+};
+
+Getopt::Long::Configure('bundling');
+GetOptions(
+        "p=s" => \$paths{'web'}, "web=s" => \$paths{'web'},
+        "l=s" => \$paths{'log'}, "log=s" => \$paths{'log'},
+        "v" => \$opt_verbose, "verbose" => \$opt_verbose,
+        "h" => \$opt_help, "help" => \$opt_help
+) || pod2usage(2);
+
+
+## Logger
+my $log_conf = "
+   log4perl.rootLogger              = DEBUG, LOG1
+   log4perl.appender.LOG1           = Log::Log4perl::Appender::File
+   log4perl.appender.LOG1.filename  = $paths{'log'}
+   log4perl.appender.LOG1.mode      = append
+   log4perl.appender.LOG1.layout    = Log::Log4perl::Layout::PatternLayout
+   log4perl.appender.LOG1.layout.ConversionPattern = %d %p %m %n
+";
+
+Log::Log4perl::init(\$log_conf);
+our $logger = Log::Log4perl->get_logger();
+$logger->info("### Starting webadm_proftp ###");
+
+if(!$paths{'web'} || ! -d $paths{'web'}){
+	$logger->error("Web path not set");
+	print "ERROR: Web path not set\n" if $opt_verbose;
+	pod2usage({-exitval => 1, -verbose => 1}) if $opt_verbose;
+}
+
+$paths{'config'} = $paths{'web'}."/proftp/share/config/config.xml";
+$paths{'rrd'} = $paths{'web'}."/proftp/rrd";
+$paths{'charts'} = $paths{'web'}."/proftp/share/charts";
+
+## XML
+if(! -f $paths{'config'}){
+	if(!$paths{'config'}){$paths{'config'} = "n/a";}
+	print "XML config file not found: '$paths{'config'}'\n" if $opt_verbose;
+	$logger->error("XML config file not found: '$paths{'config'}'");
+	pod2usage({-exitval => 1, -verbose => 1}) if $opt_verbose;
+	exit 1;
+}
+our $config = XMLin($paths{'config'});
+print Dumper($config);
+
+## MYSQL
+
+our $dbh = undef;
+
+if($config->{'mysql'}->{'host'} && $config->{'mysql'}->{'db'} && $config->{'mysql'}->{'user'} && $config->{'mysql'}->{'pass'}){
+	my $dbconnection = "DBI:mysql:$config->{'mysql'}->{'db'}:$config->{'mysql'}->{'host'}";
+	$dbh = DBI->connect( "$dbconnection",$config->{'mysql'}->{'user'},$config->{'mysql'}->{'pass'}) || die "Database connection not made: $DBI::errstr\n";
+}
+else{
+	print "ERROR: MYSQL data not found in config xml: '$paths{'config'}'\n";
+	$logger->error("MYSQL data not found in config xml: '$paths{'config'}'");
+	exit 1;
+}
+
+## Main
+
+if($opt_timeout){alarm($opt_timeout);}
+
+init_ftp_folder();
+
+while(1){
+	print "LOOP\n" if $opt_verbose;
+	$time{'loop'}{'begin'} = time;
+	my $cmdexitcode = 0;
+	my $cmdresult = "";
+	my $query = "SELECT * FROM guicmds WHERE status = 0 ORDER BY created;";
+	my $sth = $::dbh->prepare($query);
+	$sth->execute();
+	while(my $ref = $sth->fetchrow_hashref()){
+		if(!$ref->{'command'}){next;}
+
+		if($ref->{'command'} eq "FOLDER ADD"){
+			$cmdexitcode = add_folder(\$cmdresult,$ref->{'params'});
+		}
+
+		if($cmdexitcode == 2){
+			$query = "UPDATE guicmds SET status = 2, result = '$cmdresult', completed = NOW() WHERE id = '".$ref->{'id'}."';";
+		}
+		else{
+			$query = "UPDATE guicmds SET status = 1, result = '$cmdresult' WHERE id = '".$ref->{'id'}."';";
+		}
+		my $sth2 = $::dbh->prepare($query);
+		$sth2->execute();
+		$sth2->finish();
+	}
+	$sth->finish();
+	
+	sleep $time{'loop'}{'sleep'};
+
+	$time{'loop'}{'taken'} = time - $time{'loop'}{'begin'};
+	$time{'chart'}{'taken'} += $time{'loop'}{'taken'};
+	if($time{'chart'}{'taken'} >= $time{'chart'}{'max'}){
+		create_charts();
+		$time{'chart'}{'taken'} = 0;
+	}
+}
+
+$dbh->disconnect();
+
+__END__
+
+=head1 NAME
+
+sample - Using GetOpt::Long and Pod::Usage
+
+=head1 SYNOPSIS
+
+sample [options] [file ...]
+
+ Options:
+  -help	brief help message
+  -man	full documentation
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<-help>
+
+Print a brief help message and exits.
+
+=item B<-man>
+
+Prints the manual page and exits.
+
+=back
+
+=head1 DESCRIPTION
+
+B<This program> will read the given input file(s) and do something
+useful with the contents thereof.
+
+=cut
+
+
+# Example: Livestatus
+# my $livestatus = Monitoring::Livestatus->new(socket => $opt_live_socket);
+# my $livestatus_hash_refs = $livestatus->selectall_arrayref("GET hosts\nColumns: host_name", { Slice => {} });
+# ODER fuer Socket
+# my $ml = Monitoring::Livestatus->new(
+# 	name => 'Nagios',
+# 	verbose => 0,
+# 	keepalive => 1,
+# 	peer => [
+# 		{
+# 			name => 'Produktiv',
+# 			peer => $livesocket,
+# 		}
+# 	],
+# );
+# foreach (@$livestatus_hash_refs){
+#       print $_->{'host_name'}."\n";
+# }
+#
+# Example DBI
+# my $dbconnection = "DBI:mysql:nagios:nagios.gh.de";
+# my $dbh = DBI->connect( "$dbconnection","$opt_user","$opt_pass") || die "Database connection not made: $DBI::errstr";
+# my $sqlquery = "SELECT...";
+# my $sql = qq{$sqlquery};
+# my $sth = $dbh->prepare( $sql );
+# $sth->execute();
+# while(my @result=$sth->fetchrow_array){
+# 	print $result[0]."\n";
+# }
+# $sth->finish();
+# $dbh->disconnect();
+#
+# Example SNMP
+# Init:
+# my ($snmp, $err) = Net::SNMP->session(
+#         -hostname => $hostname,
+#         -community => $snmp_community,
+#         -port => 161,
+#         -version => 2,
+#         -timeout => 20,
+#         -retries => 0
+#         #-debug => 0x02
+#         #-timeout => 20
+# );
+#
+#my ($session, $err) = Net::SNMP->session(
+#                -hostname => $opt_hostname,
+#                #-port => 161,
+#                -version => 3,
+#                -username => $opt_snmpuser,
+#                -authprotocol => $snmp_authprotocol,
+#                -authpassword => $opt_snmpauthpass,
+#                -privpassword => $opt_privpassword,
+#                -privprotocol => $snmp_privprotocol,
+#                -timeout => $snmp_timeout,
+#                -retries => 0,
+#                #-debug => 0x02
+#                #-timeout => 20
+#        );
+#
+# Execute:
+# my %oid = (
+#         hrStorageEntryTables => '.1.3.6.1.2.1.25.2.3.1',
+#         hrStorageIndex => '.1.3.6.1.2.1.25.2.3.1.1',
+#         hrStorageType => '.1.3.6.1.2.1.25.2.3.1.2',
+#         hrStorageDesc => '.1.3.6.1.2.1.25.2.3.1.3',
+#         hrStorageAllocationUnits => '.1.3.6.1.2.1.25.2.3.1.4',
+#         hrStorageSize => '.1.3.6.1.2.1.25.2.3.1.5',
+#         hrStorageUsed => '.1.3.6.1.2.1.25.2.3.1.6'
+# );
+# my $response;
+# if($snmp){
+#         $response = $snmp->get_table(
+#                 -baseoid => $oid{hrStorageEntryTables}
+#         );
+# }
+#
+# Example XML
+# my $x = XML::LibXML->new() or die "new failed";
+# my $d = $x->parse_file($file) or die "parse failed";
+# my $tmp_ds = "//NAGIOS/DATASOURCE[DS/text()='txtvalue']/DS/text()";
+# for ($d->findnodes($tmp_ds)) {
+# 	$tmp_ds_value = $_->toString();
+# }
+#
+# Example sub:
+# sub add{
+# 	my ($a,$b) = @_;
+# 	return ($a + $b);
+# }
+# print add(1,2);
+
+#sub snmp_init{
+#        my %conn = shift;
+#        if(!$conn{'timeout'}){$conn{'timeout'} = 10;}
+#        if(!$conn{'version'}){$conn{'version'} == 1;};
+#        my ($session,$err) = undef,undef;
+#        if($conn{'version'} == 3){
+#                if($conn{'hostname'} && $conn{'user'} && $conn{'authprotocol'} && $conn{'authpass'} && $conn{'privpass'} && $conn{'privprotocol'}){
+#                        ($session, $err) = Net::SNMP->session(
+#                                -hostname => $conn{'hostname'},
+#                                -port => 161,
+#                                -version => 3,
+#                                -username => $conn{'user'},
+#                                -authprotocol => $conn{'authprotocol'},
+#                                -authpassword => $conn{'authpass'},
+#                                -privpassword => $conn{'privpass'},
+#                                -privprotocol => $conn{'privprotocol'},
+#                                -timeout => $conn{'timeout'},
+#                                -retries => 0,
+#                                #-debug => 0x02
+#                        );
+#                }
+#        }
+#        elsif($conn{'version'} == 1 || $conn{'version'} == 2){
+#                if($conn{'hostname'} && $conn{'community'}){
+#                        ($session, $err) = Net::SNMP->session(
+#                                -hostname => $conn{'hostname'},
+#                                -community => $conn{'community'},
+#                                -port => 161,
+#                                -version => $conn{'version'},
+#                                -timeout => 20,
+#                                -retries => 0
+#                                #-debug => 0x02
+#                        );
+#                }
+#        }
+#        if(!$session){
+#                print "ERROR: Unable to establish SNMP session: '$err'\n";
+#        }
+#        return $session;
+#}
+
+#sub snmp_get_table{
+#        my ($session,$table_oid) = @_;
+#        my $response = undef;
+#        if($session){
+#                if($table_oid){
+#                        $response = $snmp->get_table(
+#                                -baseoid => $table_oid
+#                        );
+#                }
+#                else{
+#                        print "No OID provided: '$table_oid'\n";
+#                }
+#        }
+#        if(!$response){print "ERROR: No response from SNMP\n";}
+#        return $response;
+#}
+
+#sub snmp_get_entries{
+#        my ($session,@oids) = @_;
+#        my $response = undef;
+#        if($session){
+#                $response = $session->get_request(
+#                        -varbindlist => \@oids,
+#                );
+#        }
+#        if(!$response){print "ERROR: No response from SNMP\n";}
+#        return $response;
+#}

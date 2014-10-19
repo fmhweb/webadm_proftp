@@ -1,0 +1,35 @@
+ALTER TABLE acl
+ADD CONSTRAINT FK_acl
+FOREIGN KEY (userid) REFERENCES users(userid)
+ON UPDATE CASCADE
+ON DELETE CASCADE;
+
+ALTER TABLE quotalimits
+ADD CONSTRAINT FK_quotalimits
+FOREIGN KEY (nameid) REFERENCES users(userid)
+ON UPDATE CASCADE
+ON DELETE CASCADE;
+
+ALTER TABLE quotatallies
+ADD CONSTRAINT FK_quotatallies
+FOREIGN KEY (nameid) REFERENCES users(userid)
+ON UPDATE CASCADE
+ON DELETE CASCADE;
+
+ALTER TABLE userkeys
+ADD CONSTRAINT FK_userkeys
+FOREIGN KEY (userid) REFERENCES users(userid)
+ON UPDATE CASCADE
+ON DELETE CASCADE;
+
+ALTER TABLE acl
+ADD CONSTRAINT FK_acl_path
+FOREIGN KEY (path) REFERENCES folders(path)
+ON UPDATE CASCADE
+ON DELETE CASCADE;
+
+ALTER TABLE users AUTO_INCREMENT = 10000;
+ALTER TABLE groups AUTO_INCREMENT = 10000;
+
+SELECT sec_to_time(time_to_sec(datefield)- time_to_sec(datefield)%(15*60)) as intervals from tablename
+group by intervals

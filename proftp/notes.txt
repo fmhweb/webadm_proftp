@@ -1,0 +1,4 @@
+=== Quotas ===
+
+=Create quota DB ext4
+quotacheck -cug /data

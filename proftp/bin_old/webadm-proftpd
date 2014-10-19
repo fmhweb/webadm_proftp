@@ -1,0 +1,388 @@
+#!/usr/bin/perl -w
+
+use strict;
+use warnings;
+use lib './modules/';
+use Getopt::Long;
+use XML::Simple;
+use Data::Dumper;
+use Log::Log4perl;
+use File::Basename;
+use DBI;
+use POSIX qw(mkfifo);
+use File::Path qw(make_path remove_tree);
+use WebADM::Auth;
+
+my $run = 1;
+
+$SIG{TERM} = sub {
+	$run = 0;
+};
+
+# ========= Init =========
+
+my %param = ();
+my $basename = basename($0);
+
+my $version = '1.1';
+
+$param{time}{begin}{epoch}  = time;
+$param{time}{begin}{str}  = localtime;
+$param{length}{passwd}  = 12;
+$param{time}{execute}  = 5;
+$param{'log'}{'level'} = 10;
+$param{'default'}{'min'}{'uid'} = 1000;
+$param{'default'}{'min'}{'gid'} = 1000;
+
+# ========= Params =========
+
+GetOptions(
+	"c=s" => \$param{'path'}{'xml'}, "config=s" => \$param{'path'}{'xml'},
+	"l=s" => \$param{'path'}{'log'}, "log=s" => \$param{'path'}{'log'},
+	#"L=i" => \$param{'log'}{'level'}, "log-level=i" => \$param{'log'}{'level'},
+	"p=s" => \$param{'length'}{'passwd'}, "passwd-length=s" => \$param{'length'}{'passwd'},
+	"v" => \$param{'bool'}{'verbose'}, "verbose" => \$param{'bool'}{'verbose'},
+	#"V" => \$param{'bool'}{'version'}, "version" => \$param{'bool'}{'version'},
+) or die("Error in command line arguments\n");
+
+checkParam();
+
+
+# ========= Logging =========
+
+
+my $log_conf = "
+	log4perl.rootLogger              = DEBUG, LOG1
+	log4perl.appender.LOG1           = Log::Log4perl::Appender::File
+	log4perl.appender.LOG1.filename  = $param{'path'}{'log'}
+	log4perl.appender.LOG1.mode      = append
+	log4perl.appender.LOG1.layout    = Log::Log4perl::Layout::PatternLayout
+	log4perl.appender.LOG1.layout.ConversionPattern = %d %p %m %n
+";
+Log::Log4perl::init(\$log_conf);
+my $logger = Log::Log4perl->get_logger();
+
+$logger->info("$basename started $param{time}{begin}{str}");
+
+
+# ========= XML Config =========
+
+
+my $xml = new XML::Simple;
+our $config = $xml->XMLin($param{'path'}{'xml'});
+
+print $config->{'cmd'}->{'ftpwho'}."\n";
+if($param{'bool'}{'verbose'}){print Dumper($config);}
+
+
+# ========= Mysql =========
+
+my $dbh = undef;
+
+if($config->{'mysql'}->{'host'} && $config->{'mysql'}->{'db'} && $config->{'mysql'}->{'user'} && $config->{'mysql'}->{'pass'}){
+	$dbh = DBI->connect("DBI:mysql:$config->{'mysql'}->{'db'};host=$config->{'mysql'}->{'host'}", $config->{'mysql'}->{'user'}, $config->{'mysql'}->{'pass'},{ RaiseError => 1 });
+}
+else{
+	if($param{'bool'}{'verbose'}){print "Config error. Mysql data not found in xml file\n"};
+	$logger->error("Config error. Mysql data not found in xml file");
+	exit 1;
+}
+
+# ========= Main =========
+
+#my $ex = execSql("UPDATE history_cmd SET pending = 0;");
+#$ex = execSql("UPDATE history_cmd SET pending = 1 WHERE cmdid = 1;");
+#$ex = execSql("UPDATE history_cmd SET pending = 1 WHERE cmdid = 3;");
+
+checkme("asd");
+exit;
+
+while($run){
+	my $sth = $dbh->prepare('SELECT cmdid,cmd,params,username FROM history_cmd WHERE pending > 0 ORDER BY created;');
+	$sth->execute();
+	while(my $result = $sth->fetchrow_hashref()){
+		if($param{'bool'}{'verbose'}){print "\nCMD: ".$result->{'cmd'}." - Params: ".$result->{'params'}."\n";}
+		if(!$result->{'username'}){next;}
+		my $exitcode = -1;
+		my @params = split(";",$result->{'params'});
+
+		if($result->{'cmd'} eq "useradd"){
+
+### ========= USERADD =========
+#params: 0=username;1=surname,2=firstname,3=passwd,4=email,5=company,6=telephon,7=fax,8=address,9=comment,10=gid,11=homedir,12=shell,13=expires,14=disabled
+#Example query: INSERT INTO history_cmd (cmd,params,username,created) VALUES ('useradd','surfst;Sur;First;durstm;fmhspam@live.de;SomeCompany;+4912345678;+4912345679;Somestreet 100,12345 City,Country;some comment;100;/data/durstm;/bin/sh;0000-00-00 00:00:00;0','webadm',NOW());
+#Example query: INSERT INTO history_cmd (cmd,params,username,created) VALUES ('useradd','sursec;Sur;Second;durstm;fmhspam@live.de;SomeCompany;+4912345678;+4912345679;Somestreet 100,12345 City,Country;some comment;100;/data/durstm;/bin/sh;0000-00-00 00:00:00;0','webadm',NOW());
+
+			if($params[0] && $params[10] && $params[11] && $params[12] && $params[13] && defined($params[14])){
+				if($param{'bool'}{'verbose'}){print "USERADD: Adding user '".$result->{'params'}."'\n";}
+				my $uid = undef;
+				my $comment = "";
+				if($params[1]){$comment .= $params[1];}
+				if($params[2]){if($comment){$comment .= ", ";};$comment .= $params[2];}
+				if($params[4]){if($comment){$comment .= ", ";};$comment .= $params[4];}
+				if($params[5]){if($comment){$comment .= ", ";};$comment .= $params[5];}
+				if($comment){$comment .= " - ";}
+				$comment .= "Created by ".$result->{'username'}." on ".localtime;
+				$exitcode = userAdd($params[0],\$params[3],$params[11],$comment,\$uid,$params[10]);
+				if($exitcode != -1){
+					$exitcode = execSql("INSERT INTO users (username,surname,firstname,passwd,email,company,telephon,fax,address,comment,uid,gid,homedir,shell,created_by,created,expires,disabled) VALUES ('$params[0]','$params[1]','$params[2]','$params[3]','$params[4]','$params[5]','$params[6]','$params[7]','$params[8]','$params[9]','$uid','$params[10]','$params[11]','$params[12]','".$result->{'username'}."',NOW(),'$params[13]','$params[14]');");
+				}
+			}
+		}
+		elsif($result->{'cmd'} eq "usermod"){
+### ========= USERMOD =========
+#Disable user
+		}
+		elsif($result->{'cmd'} eq "userdel"){
+### ========= USERDEL =========
+#params: 0=username
+#Example query: INSERT INTO history_cmd (cmd,params,username,created) VALUES ('userdel','durstm','webadm',NOW());
+		
+			if($params[0]){
+				$logger->info("USERDEL: Deleting user '$params[0]'");
+				if($param{'bool'}{'verbose'}){print "USERDEL: Deleting user '".$result->{'params'}."'\n";}
+				my $exitval = execCmd($config->{'cmd'}->{'userdel'},$params[0]);
+				if($exitval){
+					$exitcode = execSql("DELETE FROM users WHERE username = '$params[0]';");
+				}
+				else{$logger->error("USERDEL: Unable to delete user '$params[0]'");}
+			}
+		}
+		elsif($result->{'cmd'} eq "groupadd"){
+### ========= GROUPADD =========
+#params: 0=groupname;1=comment;2=expires;3=disabled
+#Example query: INSERT INTO history_cmd (cmd,params,username,created) VALUES ('groupadd','mygroup;some comment;0000-00-00 00:00:00;0','webadm',NOW());
+
+			if($params[0] && $params[2] && defined($params[3])){
+			print "TEST11\n";
+				if($param{'bool'}{'verbose'}){print "GROUPADD: Adding group '".$result->{'params'}."'\n";}
+				my $gid = undef;
+				$exitcode = groupAdd($params[0],\$gid);
+                                if($exitcode != -1){
+                                        $exitcode = execSql("INSERT INTO groups (groupname,comment,gid,created_by,created,expires,disabled) VALUES ('$params[0]','$params[1]','$gid','".$result->{'username'}."',Now(),'$params[2]','$params[3]');");
+                                }
+			}
+		}
+		elsif($result->{'cmd'} eq "groupdel"){
+### ========= GROUPDEL =========
+##params: 0=groupname
+##Example query: INSERT INTO history_cmd (cmd,params,username,created) VALUES ('groupdel','mygroup','webadm',NOW());
+			if($params[0]){
+                                $logger->info("GROUPDEL: Deleting group '$params[0]'");
+                                if($param{'bool'}{'verbose'}){print "GROUPDEL: Deleting group '".$result->{'params'}."'\n";}
+                                my $exitval = execCmd($config->{'cmd'}->{'groupdel'},$params[0]);
+                                if($exitval){
+                                        $exitcode = execSql("DELETE FROM groups WHERE groupname = '$params[0]';");
+                                }
+                                else{$logger->error("GROUPDEL: Unable to delete group '$params[0]'");}
+                        }
+		}
+		if($exitcode != -1){$exitcode = execSql("UPDATE history_cmd SET pending = 0, executed = NOW() WHERE cmdid = '".$result->{'cmdid'}."';");}
+		else{$exitcode = execSql("UPDATE history_cmd SET pending = 2, executed = NOW() WHERE cmdid = '".$result->{'cmdid'}."';");}
+	}
+	#my $exitcode = execSql("UPDATE history_cmd SET pending = 0;");
+	sleep $param{time}{execute};
+}
+
+$dbh->disconnect();
+$logger->info("$basename stopped ".localtime);
+
+
+# ========= Functions =========
+
+sub execSql{
+	my $sth = $dbh->prepare($_[0]);
+	print "TEST: $_[0]\n";
+	$sth->execute();
+	if($dbh->err){$logger->error("MYSQL: Query failed: $_[0]");return -1;}
+	if($param{'log'}{'level'} > 2){$logger->info("MYSQL: Query successfull: $_[0]");}
+	return 0;
+}
+
+sub userAdd{
+	my ($username,$refpasswd,$homedir,$comment,$refuid,$gid) = @_;
+	if($username && $homedir){
+		my $exitcode = userGetId($username);
+		if($exitcode == -1){
+			$logger->info("USERADD: Name: $username - Homedir: $homedir - Comment: $comment");
+			$$refuid = userGetNextId();
+			if($$refuid >= $param{'default'}{'min'}{'uid'}){
+				if(!$$refpasswd){$$refpasswd = randPasswd();}
+				if(! -d $homedir){addDirectory($homedir,$config->{'default'}->{'dir'}->{'mode'},$config->{'default'}->{'dir'}->{'user'},$config->{'default'}->{'dir'}->{'group'});}
+				my $exitval = execCmd("$config->{'cmd'}->{'useradd'}","-u ".$$refuid." -g $gid -d '$homedir' -p ".$$refpasswd." -c '$comment' $username");
+				if(!$exitval){$logger->error("USERADD: Unable to add user - Command failed");}
+				else{
+					$exitcode = userGetId($username);
+					if(!$exitcode){$logger->error("USERADD: Unable to add user - User not found in '$config->{'path'}->{'passwd'}'");}
+					else{return 0;}
+				}
+			}
+			else{$logger->error("USERADD: Unable to add user - An error occured collecting the next user id - Min: '".$$refuid."' >= '$param{'default'}{'min'}{'uid'}' failed");}
+		}
+		else{$logger->error("USERADD: Unable to add user - User '$username' already exists");}
+	}
+	else{$logger->error("USERADD: Unable to add user - Username '$username' or homedir '$homedir' missing");}
+	return -1;
+}
+
+sub groupAdd{
+	my ($groupname,$refgid) = @_;
+	if($groupname){
+		my $exitcode = groupGetId($groupname);
+		print "TEST1: $exitcode\n";
+		if($exitcode == -1){
+			$logger->info("GROUPADD: Name: $groupname");
+			$$refgid = groupGetNextId();
+                        if($$refgid >= $param{'default'}{'min'}{'gid'}){
+				my $exitval = execCmd("$config->{'cmd'}->{'groupadd'}","-g ".$$refgid." $groupname");
+                                if(!$exitval){$logger->error("GROUPADD: Unable to add group - Command failed");}
+				else{
+                                        $exitcode = groupGetId($groupname);
+                                        if(!$exitcode){$logger->error("GROUPADD: Unable to add group - User not found in '$config->{'path'}->{'passwd'}'");}
+                                        else{return 0;}
+                                }
+			}
+			else{$logger->error("GROUPADD: Unable to add group - An error occured collecting the next group id - Min: '".$$refgid."' >= '$param{'default'}{'min'}{'gid'}' failed");}
+		}
+		else{$logger->error("GROUPADD: Unable to add group - Group '$groupname' already exists");}
+	}
+	else{$logger->error("GROUPADD: Unable to add group - Groupname '$groupname' missing");}
+        return -1;
+}
+
+sub userGetId{ #Also used to see if user exists
+	if($_[0]){
+		if($_[0] =~ m/^\d+$/){
+			my $exitval = execCmd("$config->{'cmd'}->{'id'}","-u '$_[0]'");
+			if($exitval){return $exitval;}
+		}
+		else{
+			my $exitval = execCmd("$config->{'cmd'}->{'id'}","-u -n '$_[0]'");
+			if($exitval){return $exitval;}
+		}
+	}
+	return -1;
+}
+
+sub userGetNextId{
+	if($config->{'path'}->{'passwd'} && -f $config->{'path'}->{'passwd'}){
+		if($config->{'default'}->{'min'}->{'uid'} =~ m/^\d+$/ && $config->{'default'}->{'min'}->{'uid'} >= $param{'default'}{'min'}{'uid'}){
+			my $nextid = $config->{'default'}->{'min'}->{'uid'} - 1;
+			open FILE,"<$config->{'path'}->{'passwd'}" || die "Cannot open file '$config->{'path'}->{'passwd'}': $!";
+			my @content = <FILE>;
+			close(FILE);
+			foreach (@content){
+				my @elements = split(":",$_);
+				if($elements[2] > $nextid){$nextid = $elements[2];}
+			}
+			$nextid++;
+			return $nextid;
+		}
+		else{$logger->error("USERGETNEXTID: Minuid '$config->{'default'}->{'min'}->{'uid'}' missing or below '$param{'default'}{'min'}{'uid'}' - Check the xml config file: '$param{'path'}{'xml'}'");}
+	}
+	return -1;
+}
+
+sub groupGetId{
+	if($_[0]){
+		if($_[0] =~ m/^\d+$/){
+			my $exitval = execCmd("$config->{'cmd'}->{'id'}","-g '$_[0]'");
+			if($exitval){return $exitval;}
+		}
+		else{
+			my $exitval = execCmd("$config->{'cmd'}->{'id'}","-g -n '$_[0]'");
+			if($exitval){return $exitval;}
+		}
+	}
+	return -1;
+}
+
+sub groupGetNextId{
+	if($config->{'path'}->{'group'} && -f $config->{'path'}->{'group'}){
+		print "TEST2\n";
+		if($config->{'default'}->{'min'}->{'gid'} =~ m/^\d+$/ && $config->{'default'}->{'min'}->{'gid'} >= $param{'default'}{'min'}{'gid'}){
+			my $nextid = $config->{'default'}->{'min'}->{'gid'} - 1;
+                        open FILE,"<$config->{'path'}->{'group'}" || die "Cannot open file '$config->{'path'}->{'group'}': $!";
+                        my @content = <FILE>;
+                        close(FILE);
+                        foreach (@content){
+                                my @elements = split(":",$_);
+                                if($elements[2] > $nextid){$nextid = $elements[2];}
+                        }
+                        $nextid++;
+                        return $nextid;
+		}
+		else{$logger->error("GROUPGETNEXTID: Mingid '$config->{'default'}->{'min'}->{'gid'}' missing or below '$param{'default'}{'min'}{'gid'}' - Check the xml config file: '$param{'path'}{'xml'}'");}
+	}
+	else{$logger->error("GROUPGETNEXTID: Group file is missing '$config->{'path'}->{'group'}' - Check the xml config file: '$param{'path'}{'xml'}'");}
+	return -1;
+}
+
+sub execCmd{
+	if($_[0]){
+		my $cmd = $_[0];
+		if($_[1]){$cmd .= " $_[1]";}
+		if($param{'bool'}{'verbose'}){print "EXECCMD: >> $cmd <<\n"};
+		my @result = qx($cmd 2>/dev/null);
+		if($? == 0){
+			$logger->info("EXECCMD: success $cmd");
+			if($result[0]){
+				chomp($result[0]);
+				return $result[0];
+			}
+			return 1;
+		}
+		else{$logger->error("EXECCMD: failed $cmd - $!");}
+	}
+	else{$logger->error("command missing - Check the xml config file: '$param{'path'}{'xml'}'");}
+	return undef;
+}
+
+sub addDirectory{
+	my ($dir,$mode,$user,$group) = @_;
+	if($dir && ! -d $dir && $mode){
+		$logger->info("Creating directory: '$dir'");
+		make_path("$dir", {
+			mode => $mode,
+		});
+		if(-d $dir){
+			if($user && $group){
+				my $exitcode = execCmd("$config->{'cmd'}->{'chown'}","$user:$group '$dir'");
+				if(!$exitcode){$logger->error("ADDDIRECTORY: Unable to change ownership of directory - user='$user',group='$group'");}
+				else{return 0;}
+			}
+		}
+		else{$logger->error("ADDDIRECTORY: Unable to create directory: '$dir'");}
+	}
+	return -1;
+}
+
+sub randPasswd{
+	return qx(date +%s | sha256sum | base64 | head -c $config->{'default'}->{'passwdlength'});
+}
+
+sub checkParam{
+	my $exitcode = 0;
+	if(!$param{'path'}{'xml'}){print "XML param path not provided\n";$exitcode = 1;}
+	elsif(! -f $param{'path'}{'xml'}){print "XML param file not found: '$param{'path'}{'xml'}'\n";$exitcode = 1;}
+	elsif(!$param{'path'}{'log'}){print "Log path not provided - Use -l <logfile>\n";$exitcode = 1;}
+	elsif(! -d dirname($param{'path'}{'log'})){print "Unable to create logfile: Directory for log not found for '$param{'path'}{'log'}'\n";$exitcode = 1;}
+	if($exitcode){printHelp();}
+}
+
+sub printHelp{
+	print "
+
+	$basename - WebAdm Proftp daemon
+
+		-l, --log 		Logfile path
+		-c, --config 		XML config path
+		-v, --verbose 		Verbose output
+		-V, --version 		Print version
+
+	$basename -c <xmlconfig> -l <logpath>
+";
+	exit 1;
+}
+
+$logger->error("$basename exited in unexpected manner - End of script should never be reached");

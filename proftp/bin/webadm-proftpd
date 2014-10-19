@@ -1,0 +1,255 @@
+#!/usr/bin/perl -w
+# ===================== #
+# Author: Moritz Hunger #
+# Date:   01.10.2014    #
+# ===================== #
+
+use strict;
+use warnings;
+use lib './modules';
+use Getopt::Long;
+use XML::Simple;
+use Data::Dumper;
+use Log::Log4perl;
+use File::Basename;
+use DBI;
+use POSIX qw(mkfifo);
+use WebADM::Global;
+use WebADM::Sql;
+use WebADM::Auth;
+use WebADM::Quota;
+
+my $run = 1;
+
+$SIG{TERM} = sub {
+	$run = 0;
+};
+
+# ========= Init =========
+
+our %param = ();
+my $basename = basename($0);
+
+my $version = '1.0';
+
+$param{'time'}{'begin'}{'epoch'}  = time;
+$param{'time'}{'begin'}{'str'}  = localtime;
+$param{'time'}{'execute'}  = 5;
+$param{'time'}{'check'}{'user'}{'interval'}  = 60 * 30;
+$param{'time'}{'check'}{'group'}{'interval'}  = 60 * 30;
+$param{'time'}{'check'}{'quota'}{'interval'}  = 1;
+$param{'time'}{'check'}{'user'}{'count'}  = 0;
+$param{'time'}{'check'}{'group'}{'count'}  = 0;
+$param{'time'}{'check'}{'quota'}{'count'}  = 0;
+
+$param{'log'}{'level'} = 10;
+$param{'default'}{'min'}{'uid'} = 1000;
+$param{'default'}{'min'}{'gid'} = 1000;
+$param{'default'}{'device'} = 1024;
+$param{'default'}{'blocksize'} = 1024;
+$param{'length'}{'passwd'}  = 12;
+
+# ========= Params =========
+
+GetOptions(
+	"c=s" => \$param{'path'}{'xml'}, "config=s" => \$param{'path'}{'xml'},
+	"l=s" => \$param{'path'}{'log'}, "log=s" => \$param{'path'}{'log'},
+	#"L=i" => \$param{'log'}{'level'}, "log-level=i" => \$param{'log'}{'level'},
+	"p=s" => \$param{'length'}{'passwd'}, "passwd-length=s" => \$param{'length'}{'passwd'},
+	"v" => \$param{'bool'}{'verbose'}, "verbose" => \$param{'bool'}{'verbose'},
+	#"V" => \$param{'bool'}{'version'}, "version" => \$param{'bool'}{'version'},
+) or die("Error in command line arguments\n");
+
+checkParam();
+
+
+# ========= Logging =========
+
+
+my $log_conf = "
+	log4perl.rootLogger              = DEBUG, LOG1
+	log4perl.appender.LOG1           = Log::Log4perl::Appender::File
+	log4perl.appender.LOG1.filename  = $param{'path'}{'log'}
+	log4perl.appender.LOG1.mode      = append
+	log4perl.appender.LOG1.layout    = Log::Log4perl::Layout::PatternLayout
+	log4perl.appender.LOG1.layout.ConversionPattern = %d %p %m %n
+";
+Log::Log4perl::init(\$log_conf);
+our $logger = Log::Log4perl->get_logger();
+
+$logger->info("############## $basename started $param{time}{begin}{str} ##############");
+
+
+# ========= XML Config =========
+
+
+my $xml = new XML::Simple;
+our $config = $xml->XMLin($param{'path'}{'xml'});
+
+
+
+# ========= Mysql =========
+
+our $dbh = undef;
+
+if($config->{'mysql'}->{'host'} && $config->{'mysql'}->{'db'} && $config->{'mysql'}->{'user'} && $config->{'mysql'}->{'pass'}){
+	$dbh = DBI->connect("DBI:mysql:$config->{'mysql'}->{'db'};host=$config->{'mysql'}->{'host'}", $config->{'mysql'}->{'user'}, $config->{'mysql'}->{'pass'},{ RaiseError => 1 });
+}
+else{
+	if($param{'bool'}{'verbose'}){print "Config error. Mysql data not found in xml file: '$param{'path'}{'xml'}'\n"};
+	$logger->error("Config error. Mysql data not found in xml file: '$param{'path'}{'xml'}'");
+	exit 1;
+}
+
+# ========= Device and Blocksize =========
+
+if($config->{'path'}->{'ftphome'}){
+	if(! -d $config->{'path'}->{'ftphome'}){addDirectory($config->{'path'}->{'ftphome'},$::config->{'default'}->{'dir'}->{'mode'},$::config->{'default'}->{'dir'}->{'user'},$::config->{'default'}->{'dir'}->{'group'});}
+	if(-d $config->{'path'}->{'ftphome'}){
+		my @result = ();
+		my $exitcode = execCmd($config->{'cmd'}->{'df'},"$config->{'path'}->{'ftphome'}",\@result);
+		if(!$exitcode && $result[1] && $result[1] =~ m/^([\/\w+]+)\s.+/){
+			$param{'default'}{'device'} = $1;
+			$logger->info("Device for '$config->{'path'}->{'ftphome'}' found: '$param{'default'}{'device'}'");
+			$exitcode = execCmd($config->{'cmd'}->{'blockdev'},"--getbsz $param{'default'}{'device'}",\@result);
+			if(!$exitcode && $result[0]){
+				$param{'default'}{'blocksize'} = $result[0];
+				$logger->info("Blocksize for '$param{'default'}{'device'}' found: '$param{'default'}{'blocksize'}'");
+			}
+			else{
+				if($param{'bool'}{'verbose'}){print "Unable to detect blocksize for device '$param{'default'}{'device'}' - Using default to calculate quotas: '$param{'default'}{'blocksize'}'\n"};
+				$logger->warn("Unable to detect blocksize for device '$param{'default'}{'device'}' - Using default to calculate quotas: '$param{'default'}{'blocksize'}'");
+			}
+		}
+		else{
+			if($param{'bool'}{'verbose'}){print "Unable to detect device for: '$config->{'path'}->{'ftphome'}'\n"};
+			$logger->error("Unable to detect device for: '$config->{'path'}->{'ftphome'}'");
+			exit 1;
+		}
+	}
+}
+else{
+	if($param{'bool'}{'verbose'}){print "Config error. Ftphome not found in xml file: '$param{'path'}{'xml'}'\n"};
+	$logger->error("Config error. Ftphome not found in xml file: '$param{'path'}{'xml'}'");
+	exit 1;
+}
+
+# ========= Main =========
+
+if($param{'bool'}{'verbose'}){print "==== CONFIG ====\n\n";print Dumper($config);}
+if($param{'bool'}{'verbose'}){print "\n==== PARAMS ====\n\n";print Dumper(%param);}
+
+while($run){
+	$param{'time'}{'loop'}{'begin'}  = time;
+	if($param{'bool'}{'verbose'}){print "\n==== LOOP $param{'time'}{'loop'}{'begin'} ====\n\n";}
+	my $sth = $dbh->prepare('SELECT cmdid,cmd,params,username FROM history_cmd WHERE pending = 1 ORDER BY created;');
+	$sth->execute();
+	while(my $result = $sth->fetchrow_hashref()){
+		if($param{'bool'}{'verbose'}){print "\n================== CMD: ".$result->{'cmd'}." - Params: ".$result->{'params'}."\n";}
+		if(!$result->{'username'}){next;}
+		my $loopexitcode = -1;
+		my @params = split(";",$result->{'params'});
+
+		if($result->{'cmd'} eq "useradd" || $result->{'cmd'} eq "usermod"){	#USERADD,USERMOD
+			#USERADD: params: 0=username;1=surname;2=firstname;3=passwd;4=email;5=company;6=telephon;7=fax;8=address;9=comment;10=gid;11=homedir;12=shell;13=disabled;14=expires
+			#                 15=soft quota bytes;16=hard quota bytes;17=soft inodes;18=hard inodes
+			if($param{'bool'}{'verbose'}){print "USERADD: Adding user '".$result->{'params'}."'\n";}
+			my $exitcode = userAddMod(\@params,$result->{'username'});
+			if(!$exitcode){$loopexitcode = quotaSet('-u',\@params,$result->{'username'});}
+		}
+		elsif($result->{'cmd'} eq "userdel"){					#USERDEL
+			#USERDEL: params: 0=username
+			if($param{'bool'}{'verbose'}){print "USERDEL: Deleting user '".$result->{'params'}."'\n";}
+			if($params[0]){
+				$logger->info("USERDEL: Deleting user '$params[0]'");
+				my $exitcode = execCmd($config->{'cmd'}->{'setquota'},"-u $params[0] 0 0 0 0 $param{'default'}{'device'}");
+				if(!$exitcode){
+					$exitcode = execCmd($config->{'cmd'}->{'userdel'},$params[0]);
+					if(!$exitcode){
+						$loopexitcode = execSql("DELETE FROM users WHERE username = '$params[0]';");
+					}
+					else{$logger->error("USERDEL: Unable to dsable quotas for user '$params[0]'");}
+				}
+				else{$logger->error("USERDEL: Unable to delete user '$params[0]'");}
+			}
+		}
+		elsif($result->{'cmd'} eq "groupadd"){					#GROUPADD
+			#GROUPADD: params: 0=groupname;1=comment;2=disabled;3=expires
+			if($param{'bool'}{'verbose'}){print "GROUPADD: Adding group '".$result->{'params'}."'\n";}
+			if($params[0] && $params[2] && defined($params[3])){
+			print "TEST11\n";
+				my $gid = undef;
+				my $exitcode = groupAdd($params[0],\$gid);
+                                if($exitcode != -1){
+                                        $loopexitcode = execSql("INSERT INTO groups (groupname,comment,gid,created_by,created,disabled,expires) VALUES ('$params[0]','$params[1]','$gid','".$result->{'username'}."',Now(),'$params[2]','$params[3]');");
+                                }
+			}
+		}
+		elsif($result->{'cmd'} eq "groupdel"){					#GROUPDEL
+			#GROUPDEL: params: 0=groupname
+			if($param{'bool'}{'verbose'}){print "GROUPDEL: Deleting group '".$result->{'params'}."'\n";}
+			if($params[0]){
+                                $logger->info("GROUPDEL: Deleting group '$params[0]'");
+				my $exitcode = execCmd($config->{'cmd'}->{'setquota'},"-g $params[0] 0 0 0 0 $param{'default'}{'device'}");
+                                if(!$exitcode){
+					$exitcode = execCmd($config->{'cmd'}->{'groupdel'},$params[0]);
+					if(!$exitcode){
+						$loopexitcode = execSql("DELETE FROM groups WHERE groupname = '$params[0]';");
+					}
+                                }
+                                else{$logger->error("GROUPDEL: Unable to delete group '$params[0]'");}
+                        }
+		}
+		elsif($result->{'cmd'} eq "quotacheck"){				#QUOTACHECK
+			$loopexitcode = quotaCheck();
+		}
+		if(!$loopexitcode){my $exitcode = execSql("UPDATE history_cmd SET pending = 0, executed = NOW() WHERE cmdid = '".$result->{'cmdid'}."';");}
+		else{my $exitcode = execSql("UPDATE history_cmd SET pending = 2, executed = NOW() WHERE cmdid = '".$result->{'cmdid'}."';");}
+	}
+	
+	sleep $param{time}{execute};
+
+	$param{'time'}{'loop'}{'taken'}  = time - $param{'time'}{'loop'}{'begin'};
+	$param{'time'}{'check'}{'user'}{'count'}  += $param{'time'}{'loop'}{'taken'};
+	$param{'time'}{'check'}{'group'}{'count'}  += $param{'time'}{'loop'}{'taken'};
+	$param{'time'}{'check'}{'quota'}{'count'}  += $param{'time'}{'loop'}{'taken'};
+
+	print "TEST: $param{'time'}{'loop'}{'taken'} - $param{'time'}{'check'}{'quota'}{'count'} >= $param{'time'}{'check'}{'quota'}{'interval'}\n";
+
+	if($param{'time'}{'check'}{'user'}{'count'} >= $param{'time'}{'check'}{'user'}{'interval'}){my $exitcode = execSql("INSERT INTO history_cmd (cmd,params,username,created) VALUES ('usercheck','all','auto',NOW());");}
+	if($param{'time'}{'check'}{'group'}{'count'} >= $param{'time'}{'check'}{'group'}{'interval'}){my $exitcode = execSql("INSERT INTO history_cmd (cmd,params,username,created) VALUES ('groupcheck','all','auto',NOW());");}
+	if($param{'time'}{'check'}{'quota'}{'count'} >= $param{'time'}{'check'}{'quota'}{'interval'}){my $exitcode = execSql("INSERT INTO history_cmd (cmd,params,username,created) VALUES ('quotacheck','all','auto',NOW());");}
+
+}
+
+$dbh->disconnect();
+$logger->info("$basename stopped ".localtime);
+
+
+# ========= Functions =========
+
+sub checkParam{
+	my $exitcode = 0;
+	if(!$param{'path'}{'xml'}){print "XML param path not provided\n";$exitcode = 1;}
+	elsif(! -f $param{'path'}{'xml'}){print "XML param file not found: '$param{'path'}{'xml'}'\n";$exitcode = 1;}
+	elsif(!$param{'path'}{'log'}){print "Log path not provided - Use -l <logfile>\n";$exitcode = 1;}
+	elsif(! -d dirname($param{'path'}{'log'})){print "Unable to create logfile: Directory for log not found for '$param{'path'}{'log'}'\n";$exitcode = 1;}
+	if($exitcode){printHelp();}
+}
+
+sub printHelp{
+	print "
+
+	$basename - WebAdm Proftp daemon
+
+		-l, --log 		Logfile path
+		-c, --config 		XML config path
+		-v, --verbose 		Verbose output
+		-V, --version 		Print version
+
+	$basename -c <xmlconfig> -l <logpath>
+";
+	exit 1;
+}
+
+$logger->error("$basename exited in unexpected manner - End of script should never be reached");

@@ -1,0 +1,47 @@
+<?xml version='1.0' standalone='yes'?>
+<config>
+	<default>
+		<passwdlength>12</passwdlength>
+		<shell>/bin/sh</shell>
+		<dir>
+			<mode>0750</mode>
+			<user>webadm</user>
+			<group>ftp</group>
+		</dir>
+		<min>
+			<uid>10000</uid>
+			<gid>10000</gid>
+		</min>
+	</default>
+	<path>
+		<ftphome>/data</ftphome>
+		<passwd>/etc/passwd</passwd>
+		<group>/etc/group</group>
+	</path>
+	<cmd>
+		<cat>/usr/bin/cat</cat>
+		<df>/usr/bin/df</df>
+		<chown>/usr/bin/chown</chown>
+		<chmod>/usr/bin/chmod</chmod>
+		<chpasswd>/usr/sbin/chpasswd</chpasswd>
+		<grep>/usr/bin/grep</grep>
+		<id>/usr/bin/id</id>
+		<ftpwho>/usr/bin/ftpwho</ftpwho>
+		<proftpd>/usr/sbin/proftpd</proftpd>
+		<useradd>/usr/sbin/useradd</useradd>
+		<usermod>/usr/sbin/usermod</usermod>
+		<userdel>/usr/sbin/userdel</userdel>
+		<groupadd>/usr/sbin/groupadd</groupadd>
+		<groupmod>/usr/sbin/groupmod</groupmod>
+		<groupdel>/usr/sbin/groupdel</groupdel>
+		<blockdev>/usr/sbin/blockdev</blockdev>
+		<setquota>/usr/sbin/setquota</setquota>
+		<repquota>/usr/sbin/repquota</repquota>
+	</cmd>
+	<mysql>
+		<host>localhost</host>
+		<db>webadm_proftp</db>
+		<user>webadm_proftp</user>
+		<pass>webadm_proftp</pass>
+	</mysql>
+</config>
