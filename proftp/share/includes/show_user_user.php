@@ -24,22 +24,21 @@
 		$result = $db->query($query);
 		echo "
 	<div class=\"block\">
+		<br>
 		<div align=\"center\" id=\"resultremove\"></div>
 ";
 			showPageIndex($_POST['pagename'],$_POST['tabname'],$_POST['page'],$pages,$_POST['action']);
 			echo "
 		<br>
 ";
-		echo "<table class=\"detailstitle\" align=\"center\">";
 		echo "
-			<tr>
-				<td class=\"detailsval\" colspan=\"6\">
-					<a href=\"#\" onclick=\"showDetails('0','user');return false;\">
-						<img src=\"images/user.png\" />
-						Add user
-					</a>
-				</td>
-			</tr>
+		<div class=\"options\">
+			<a href=\"#\" onclick=\"showDetails('0','user');return false;\">
+				<img src=\"images/user.png\" />
+				Add user
+			</a>
+		</div>
+		<table class=\"detailstitle\" align=\"center\">
 ";
 		if($db->num_rows($result) > 0){
 			echo "
@@ -48,7 +47,7 @@
 				<th class=\"detailstitleleft\">Surname</th>
 				<th class=\"detailstitleleft\">Firstname</th>
 				<th class=\"detailstitleleft\">Company</th>
-				<th></th>
+				<th class=\"detailstitleleft\">Commands</th>
 			</tr>
 ";
 			$switch_list = 1;
@@ -64,7 +63,7 @@
 				<td class=\"detailsval\">".$array['surname']."</td>
 				<td class=\"detailsval\">".$array['firstname']."</td>
 				<td class=\"detailsval\">".$array['company']."</td>
-				<td>
+				<td class=\"detailsval\">
 					<img src=\"images/pencil.png\" onclick=\"showDetails('".$array['userid']."','user');\")\" />
 					<img src=\"images/delete.png\" onclick=\"remUser('".$array['userid']."',1)\" />
 				</td>
@@ -79,6 +78,7 @@
 ";
 			showPageIndex($_POST['pagename'],$_POST['tabname'],$_POST['page'],$pages,$_POST['action']);
 			echo"
+		<br>
 	</div>
 ";
 			if($_POST['action'] == 1){

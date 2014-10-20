@@ -2,13 +2,14 @@
 	session_start();
 	require_once("../functions/functions.php");
 
-	function roundupMinutesFromDatetime(\Datetime $date, $minuteOff = 10){
-		$string = sprintf(
-			"%d minutes %d seconds", 
-			$date->format("i") % $minuteOff, 
-			$date->format("s")
-		);
-		return  $date->sub(\DateInterval::createFromDateString($string));
+	function roundupMinutes($date){
+		$datetime = new DateTime($date);
+		$minutes = $datetime->format('i') % 10;
+		if($minutes > 0){
+			$datetime->modify("+10 minutes");
+			$datetime->modify("-".$minutes." minutes");
+		}
+		return $datetime->format('Y-m-d H:i:00');
 	}
 
 	if($_SESSION['login']['username'] || true){
@@ -16,17 +17,13 @@
 			$datebegin = $_POST['datebegin'];
 		}
 		else{
-			$datebegin = new DateTime(date("Y:m:d h:i:s", strtotime("-1 day")));
-			$datebegin = roundupMinutesFromDatetime($datebegin);
-			$datebegin = $datebegin->format('Y-m-d H:i:s');
+			$datebegin = roundupMinutes(date("Y:m:d h:i:s", strtotime("-1 day")));
 		}
 		if(isset($_POST['dateend'])){
 			$dateend = $_POST['dateend'];
 		}
 		else{
-			$dateend = new DateTime(date("Y:m:d h:i:s", strtotime("now")));
-			$dateend = roundupMinutesFromDatetime($dateend);
-			$dateend = $dateend->format('Y-m-d H:i:s');
+			$dateend = roundupMinutes(date("Y:m:d h:i:s", strtotime("now")));
 		}
 		$timebegin = strtotime($datebegin);
 		$timeend = strtotime($dateend);

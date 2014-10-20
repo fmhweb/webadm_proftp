@@ -3,7 +3,7 @@ html{
 }
 
 body{
-	font-size:15px;
+	font-size:12px;
 }
 
 img{
@@ -15,7 +15,7 @@ a{
 }
 
 div.tabs{
-	font-size:14px;
+	font-size:12px;
 	background: rgb(63,76,107); /* Old browsers */
         background: -moz-linear-gradient(top,  rgba(63,76,107,1) 0%, rgba(96,108,136,1) 100%); /* FF3.6+ */
         background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(63,76,107,1)), color-stop(100%,rgba(96,108,136,1))); /* Chrome,Safari4+ */
@@ -52,6 +52,7 @@ td.tablink:hover{
 }
 
 div.menu{
+	font-size:13px;
 	position:fixed;
 	background: rgb(63,76,107); /* Old browsers */
 	background: -moz-linear-gradient(top,  rgba(63,76,107,1) 0%, rgba(96,108,136,1) 100%); /* FF3.6+ */
@@ -181,7 +182,7 @@ span.infosmall{
 }
 
 ul.folder{
-	margin-left: 0.8em;
+	margin-left: 30px;
 	padding-left: 0.8em;
 }
 
@@ -199,17 +200,20 @@ th.detailstitle{
 }
 
 th.detailstitleleft{
+	font-size:12px;
 	text-align:left;
 	background-color:#F2F2F2;
 	padding:2px;
 }
 
 td.detailstitle{
+	font-size:12px;
 	background-color:#F2F2F2;
 	padding:2px;
 }
 
 td.detailsval{
+	font-size:12px;
 	padding:2px;
 	border-bottom:1px solid #D8D8D8;
 }
@@ -221,6 +225,7 @@ td.detailstitletop{
 }
 
 td.detailsvaltop{
+	font-size:12px;
 	text-align:center;
 	padding:2px;
 }
@@ -304,13 +309,18 @@ div.legend{
 	text-align:left;
 }
 
+div.pageindex{
+	font-size:12px;
+	padding-left:30px;
+}
+
 span.pageindex{
 	font-size:12px;
 	font-weight:bold;
 	display:inline-block;
-	line-height: 23px;
-	width:22px;
-	height:22px;
+	line-height: 22px;
+	min-width:18px;
+	height:18px;
 	margin:2px;
 	text-align:center;
 	vertical-align:middle;
@@ -325,9 +335,9 @@ span.pageindexactive{
 	font-size:12px;
 	font-weight:bold;
 	display:inline-block;
-	line-height: 23px;
-	width:22px;
-	height:22px;
+	line-height: 22px;
+	min-width:18px;
+	height:18px;
 	margin:2px;
 	text-align:center;
 	vertical-align:middle;
@@ -384,5 +394,6 @@ span.filterbut:hover{
 }
 
 div.options{
-	padding-left:20px;
+	padding-left:30px;
+	margin-bottom:10px;
 }

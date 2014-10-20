@@ -1,6 +1,6 @@
 <?php
 	function showPageIndex($pagename,$tabname,$page,$pages,$action){
-		echo "<div align=\"center\">\n";
+		echo "<div class=\"pageindex\">\n";
 		if($page == 1){$class = "pageindexactive";}
 		else{$class = "pageindex";}
 		echo "<span class=\"$class\" onclick=\"showTab('$pagename','$tabname','1','$action');\">1</span>\n";
