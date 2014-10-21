@@ -15,6 +15,9 @@
 	</div>
 	<br>
 	<div id="resulttab"></div>
+	<script>
+		showTab('monitoring','xfer','1','0');
+	</script>
 <?php
 	}
 ?>

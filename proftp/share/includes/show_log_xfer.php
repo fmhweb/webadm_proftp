@@ -2,35 +2,19 @@
 	session_start();
 	require_once("../functions/functions.php");
 
-	function roundupMinutes($date){
-		$datetime = new DateTime($date);
-		$minutes = $datetime->format('i') % 10;
-		if($minutes > 0){
-			$datetime->modify("+10 minutes");
-			$datetime->modify("-".$minutes." minutes");
-		}
-		return $datetime->format('Y-m-d H:i:00');
-	}
-
-	if($_SESSION['login']['username'] || true){
-		if(isset($_POST['datebegin'])){
-			$datebegin = $_POST['datebegin'];
-		}
-		else{
-			$datebegin = roundupMinutes(date("Y:m:d h:i:s", strtotime("-1 day")));
-		}
-		if(isset($_POST['dateend'])){
-			$dateend = $_POST['dateend'];
-		}
-		else{
-			$dateend = roundupMinutes(date("Y:m:d h:i:s", strtotime("now")));
-		}
+	if($_SESSION['login']['username']){
+		if(isset($_POST['datebegin'])){$datebegin = $_POST['datebegin'];}
+		else{$datebegin = roundupMinutes(date("Y:m:d H:i:s", strtotime("-1 day")));}
+		if(isset($_POST['dateend'])){$dateend = $_POST['dateend'];}
+		else{$dateend = roundupMinutes(date("Y:m:d H:i:s", strtotime("now")));}
 		$timebegin = strtotime($datebegin);
 		$timeend = strtotime($dateend);
 		$timediff = $timeend - $timebegin;
 		
+		require('../includes/inc_ftp_codes.php');
+		require('../includes/inc_chart_interval.php');
+
 		require('../classes/mysql.php');
-		include('../includes/inc_ftp_codes.php');
 		$db = new Database($_SESSION['mysql']['host'], $_SESSION['mysql']['user'], $_SESSION['mysql']['pass'], $_SESSION['mysql']['db']);
 
 		//Pages
@@ -63,43 +47,6 @@
 		else{$pages = 1;}
 
 		//Graph
-
-		if($timediff > 29030400){#1 Year
-			$graphinterval = 31556926;
-			$graphintervalstr = "Years";
-		}
-		elseif($timediff > 2419200 * 3){#3 Month
-			$graphinterval = 2629744;
-			$graphintervalstr = "Months";
-		}
-		elseif($timediff > 604800 * 4){#4 Week
-			$graphinterval = 604800;
-			$graphintervalstr = "Weeks";
-		}
-		elseif($timediff > 86400 * 6){#6 Day
-			$graphinterval = 86400;
-			$graphintervalstr = "Days";
-		}
-		elseif($timediff > 86400 * 4){#4 Day
-			$graphinterval = 14400;
-			$graphintervalstr = "4 Hours";
-		}
-		elseif($timediff > 86400 * 2){#2 Day
-			$graphinterval = 7200;
-			$graphintervalstr = "2 Hours";
-		}
-		elseif($timediff > 3600){#1 Hour
-			$graphinterval = 3600;
-			$graphintervalstr = "Hours";
-		}
-		elseif($timediff > 60){#1 Minute
-			$graphinterval = 60;
-			$graphintervalstr = "Minutes";
-		}
-		else{
-			$graphinterval = 1;
-			$graphintervalstr = "Seconds";
-		}
 
 		$barwidth = 800;
 		$barheight = 400;
@@ -179,6 +126,8 @@
 			<canvas id=\"logbarchart\" width=\"$barwidth\" height=\"$barheight\"></canvas>
 			<br>
 			<span class=\"infosmall\">Interval: $graphintervalstr</span>
+			<br>
+			<span id=\"logbarlegend\"></span>
 		</div>
 		<br>
 		<div align=\"center\">
@@ -254,9 +203,6 @@
 		<br>
 	</div>
 ";
-			if($_POST['action'] == 1){
-				echo "<div align=\"center\"><a href=\"#\" onclick=\"showPrevPage();return false;\">Close</div>";
-			}
 		}
 		$db->close();
 	}
@@ -303,18 +249,21 @@
 			{
 				label: "All",
 				fillColor: "rgba(220,220,220,0.2)",
-				strokeColor: "rgba(220,220,220,1)",
-				pointColor: "rgba(220,220,220,1)",
+				strokeColor: "rgba(66,66,66,1)",
+				pointColor: "rgba(66,66,66,1)",
 				pointStrokeColor: "#fff",
 				pointHighlightFill: "#fff",
-				pointHighlightStroke: "rgba(220,220,220,1)",
+				pointHighlightStroke: "rgba(66,66,66,1)",
 				data: [<?php echo $graphdata; ?>]
 			}
-		]
+		],
 	};
 	if(myBarChart){
 		myBarChart.clear();
 		myBarChart.destroy();
 	}
-	var myBarChart = new Chart(ctx).Line(data);
+	var myBarChart = new Chart(ctx).Line(data,{
+		legendTemplate : "<ul class=\"<%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].lineColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>"
+	});
+	$('#logbarlegend').html(myBarChart.generateLegend());
 </script>

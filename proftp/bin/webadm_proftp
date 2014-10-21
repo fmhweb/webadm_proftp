@@ -30,7 +30,7 @@ use vars qw(
 our $opt_verbose = undef;
 our %time = ();
 $time{'chart'}{'taken'} = 0;
-$time{'chart'}{'max'} = 3;
+$time{'chart'}{'max'} = 60;
 $time{'loop'}{'sleep'} = 5;
 our %paths = ();
 $paths{'log'} = "/var/log/webadm/proftp.log";
@@ -108,8 +108,9 @@ if($opt_timeout){alarm($opt_timeout);}
 init_ftp_folder();
 
 while(1){
-	print "LOOP\n" if $opt_verbose;
 	$time{'loop'}{'begin'} = time;
+	print "\nLOOP - $time{'loop'}{'begin'}\n" if $opt_verbose;
+	print Dumper(%time) if $opt_verbose;
 	my $cmdexitcode = 0;
 	my $cmdresult = "";
 	my $query = "SELECT * FROM guicmds WHERE status = 0 ORDER BY created;";

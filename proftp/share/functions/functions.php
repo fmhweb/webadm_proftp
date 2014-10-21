@@ -1,4 +1,14 @@
 <?php
+	function roundupMinutes($date){
+		$datetime = new DateTime($date);
+		$minutes = $datetime->format('i') % 10;
+		if($minutes > 0){
+			$datetime->modify("+10 minutes");
+			$datetime->modify("-".$minutes." minutes");
+		}
+		return $datetime->format('Y-m-d H:i:00');
+	}
+
 	function showPageIndex($pagename,$tabname,$page,$pages,$action){
 		echo "<div class=\"pageindex\">\n";
 		if($page == 1){$class = "pageindexactive";}

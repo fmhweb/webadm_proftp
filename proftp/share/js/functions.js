@@ -22,6 +22,8 @@ var imgUser = new Image();
 imgUser.src = "images/user.png";
 var imgArrowRefresh = new Image(); 
 imgArrowRefresh.src = "images/arrow_refresh.png";
+var imgArrowOut = new Image(); 
+imgArrowOut.src = "images/arrow_out.png";
 
 var dropDownOffsetTop = 12;
 var dropDownOffsetLeft = 0;
