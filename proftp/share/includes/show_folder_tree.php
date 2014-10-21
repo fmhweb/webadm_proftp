@@ -30,27 +30,11 @@
 			}
 		}
 		else{
-			if($_POST['page'] && $_POST['page'] > 1){$mysql_page = $_POST['page'] * $_SESSION['login']['max_list_items'] - $_SESSION['login']['max_list_items'];}
-			else{$mysql_page = 0;}
-			$pages = 0;
-			$query = "SELECT COUNT(*) as count FROM folders WHERE depth = 1;";
-	                $result = $db->query($query);
-			if($db->num_rows($result) > 0){
-				while($array = $db->fetch_array_assoc($result)){
-					$pages = $array['count'];
-				}
-			}
-			if($pages > $_SESSION['login']['max_list_items']){$pages = ceil($pages / $_SESSION['login']['max_list_items']);}
-			else{$pages = 1;}
-			$query = "SELECT * FROM folders WHERE depth = 1 ORDER BY path LIMIT $mysql_page, ".$_SESSION['login']['max_list_items'].";";
+			$query = "SELECT * FROM folders WHERE depth = 1 ORDER BY path;";
 	                $result = $db->query($query);
 			if($db->num_rows($result) > 0){
 				echo "
 	<div class=\"block\">
-	<br>
-";
-			showPageIndex($_POST['pagename'],$_POST['tabname'],$_POST['page'],$pages,$_POST['action']);
-				echo "
 	<br>
 	<div class=\"options\">
 		<a href=\"#\" onclick=\"\">
@@ -81,9 +65,6 @@
 				}
 				echo "
 	</ul>
-";
-				showPageIndex($_POST['pagename'],$_POST['tabname'],$_POST['page'],$pages,$_POST['action']);
-				echo "
 		<br>
 	</div>
 ";

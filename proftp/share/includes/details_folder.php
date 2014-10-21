@@ -7,8 +7,9 @@
 		$query = "SELECT * FROM folders WHERE id = '".$_POST['id']."';";
 		$result = $db->query($query);
 		echo "
+	<div class=\"title\" onclick=\"showElement('detailsfolder');\">Folder options</div>
+	<br>
 	<div class=\"block\" id=\"detailsfolder\">
-		<div class=\"title\" onclick=\"showElement('detailsfolder');\">Folder options</div>
 		<div align=\"center\" id=\"resultsavefolder\"></div>
 		<table align=\"center\" class=\"detailstitle\">
 ";
@@ -48,8 +49,10 @@
 			$query = "SELECT * FROM acl WHERE path = '".$array['path']."';";
 			$result = $db->query($query);
 			echo "
+	<br>
+	<div class=\"title\" onclick=\"showElement('detailsfolderacl');\">Folder ACLs</div>
+	<br>
 	<div class=\"block\" id=\"detailsfolderacl\">
-		<div class=\"title\" onclick=\"showElement('detailsfolderacl');\">Folder ACLs</div>
 		<div align=\"center\" id=\"resultsaveacl\"></div>
 		<table align=\"center\" class=\"detailstitle\">
 			<tr>

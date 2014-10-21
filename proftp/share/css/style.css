@@ -145,8 +145,8 @@ td.resultright{
 div.title{
 	text-align:center;
 	font-size:14px;
-        padding-top:4px;
-        padding-bottom:4px;
+        padding-top:3px;
+        padding-bottom:3px;
 	border-top:1px solid #D8D8D8;
 	border-left:1px solid #D8D8D8;
 	box-shadow: 2px 2px 1px #888888;
@@ -241,11 +241,6 @@ tr.list0:hover{
 }
 
 tr.list1:hover{
-}
-
-input.filter{
-	font-size:13px;
-	text-align:center;
 }
 
 input.details{
@@ -359,7 +354,9 @@ span.pageindex:hover{
 	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#00000000', endColorstr='#59000000',GradientType=0 ); /* IE6-9 */
 }
 
-input.filter{
+select.filter{
+	overflow:hidden;
+	font-size:12px;
 	text-align:center;
 	padding-top:4px;
 	padding-bottom:4px;
@@ -369,7 +366,18 @@ input.filter{
 	background-color:#FFFFFF;
 }
 
-span.filterbut{
+input.filter{
+	font-size:12px;
+	text-align:center;
+	padding-top:4px;
+	padding-bottom:4px;
+	border:1px solid gray;
+	box-shadow: 2px 2px 1px #888888;
+	border-radius:25px;
+	background-color:#FFFFFF;
+}
+
+span.filter{
         text-align:center;
 	font-size:12px;
 	padding-left:10px;
@@ -396,4 +404,27 @@ span.filterbut:hover{
 div.options{
 	padding-left:30px;
 	margin-bottom:10px;
+}
+
+.hidden{
+	display:none;
+	visibility:hidden;
+}
+
+div.drop{
+	display:none;
+	visibility:hidden;
+	position:fixed;
+        text-align:center;
+	font-size:12px;
+        border:1px solid gray;
+        box-shadow: 2px 2px 1px #888888;
+        border-radius:25px;
+        background-color:#FFFFFF;
+	z-index:10;
+}
+
+div.dropvalue:hover{
+	text-decoration:underline;
+	cursor:pointer;
 }

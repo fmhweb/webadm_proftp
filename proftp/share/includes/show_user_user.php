@@ -11,6 +11,12 @@
 
 		$pages = 0;
 		$query_ext = "";
+		if(!empty($_POST['filter'])){
+			$query_ext = " WHERE userid LIKE '%".$_POST['filter']."%'";
+		}
+		else{
+			$_POST['filter'] = "";
+		}
 		$query = "SELECT COUNT(*) as count FROM users$query_ext;";
 		$result = $db->query($query);
 		if($db->num_rows($result) > 0){
@@ -24,6 +30,13 @@
 		$result = $db->query($query);
 		echo "
 	<div class=\"block\">
+		<br>
+		<div align=\"center\">
+			<form id=\"formfilter\" onsubmit=\"return false;\">
+				<input class=\"filter\" style=\"width:50%;\" type=\"text\" name=\"filter\" value=\"".$_POST['filter']."\" onkeyup=\"evalFilter(event,'user','user','1','0');\" placeholder=\"Filter (eg. userid)\" />
+				<span class=\"filterbut\" onclick=\"showTab('user','user','1','0');\">GO</span>
+			<form>
+		</div>
 		<br>
 		<div align=\"center\" id=\"resultremove\"></div>
 ";
@@ -43,7 +56,7 @@
 		if($db->num_rows($result) > 0){
 			echo "
 			<tr>
-				<th class=\"detailstitleleft\">User</th>
+				<th class=\"detailstitleleft\">Userid</th>
 				<th class=\"detailstitleleft\">Surname</th>
 				<th class=\"detailstitleleft\">Firstname</th>
 				<th class=\"detailstitleleft\">Company</th>

@@ -7,7 +7,7 @@
 	<div class="tabs">
 		<table>
 			<tr>
-				<td class="tablink" onclick="showTab('monitoring','transfer','1','0');">Transfer charts</td>
+				<td class="tablink" onclick="showTab('monitoring','xfer','1','0');">Transfer charts</td>
 				<td class="tablink" onclick="showTab('monitoring','quota','1','0');">Quota charts</td>
 				<td class="tablink" onclick="showTab('monitoring','user','1','0');">User charts</td>
 			</tr>

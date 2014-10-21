@@ -30,13 +30,14 @@
 		$timediff = $timeend - $timebegin;
 		
 		require('../classes/mysql.php');
+		include('../includes/inc_ftp_codes.php');
 		$db = new Database($_SESSION['mysql']['host'], $_SESSION['mysql']['user'], $_SESSION['mysql']['pass'], $_SESSION['mysql']['db']);
 
 		//Pages
 
-		if($_POST['page'] && $_POST['page'] > 1){$mysql_page = $_POST['page'] * $_SESSION['login']['max_list_log_items'] - $_SESSION['login']['max_list_log_items'];}
-		else{$mysql_page = 0;}
 		$entries = 0;
+		$entries_info = 0;
+		$entries_error = 0;
 		$query_ext = " WHERE time > '".$datebegin."' AND time < '".$dateend."'";
 		if(!empty($_POST['filter'])){
 			$query_ext .= " AND ".$_POST['filter'];
@@ -44,12 +45,18 @@
 		else{
 			$_POST['filter'] = "";
 		}
-		$query = "SELECT COUNT(*) as count FROM xfer$query_ext;";
+		$query = "SELECT errorlevel,COUNT(*) as count FROM xfer$query_ext GROUP BY errorlevel;";
 		//echo "$query<br>";
 		$result = $db->query($query);
 		if($db->num_rows($result) > 0){
 			while($array = $db->fetch_array_assoc($result)){
-				$entries = $array['count'];
+				$entries += $array['count'];
+				if($array['errorlevel'] == "info"){
+					$entries_info = $array['count'];
+				}
+				elseif($array['errorlevel'] == "error"){
+					$entries_error = $array['count'];
+				}
 			}
 		}
 		if($entries > $_SESSION['login']['max_list_log_items']){$pages = ceil($entries / $_SESSION['login']['max_list_log_items']);}
@@ -69,9 +76,17 @@
 			$graphinterval = 604800;
 			$graphintervalstr = "Weeks";
 		}
-		elseif($timediff > 86400 * 2){#2 Day
+		elseif($timediff > 86400 * 6){#6 Day
 			$graphinterval = 86400;
 			$graphintervalstr = "Days";
+		}
+		elseif($timediff > 86400 * 4){#4 Day
+			$graphinterval = 14400;
+			$graphintervalstr = "4 Hours";
+		}
+		elseif($timediff > 86400 * 2){#2 Day
+			$graphinterval = 7200;
+			$graphintervalstr = "2 Hours";
 		}
 		elseif($timediff > 3600){#1 Hour
 			$graphinterval = 3600;
@@ -87,41 +102,54 @@
 		}
 
 		$barwidth = 800;
-		$barheight = 300;
+		$barheight = 400;
 		$graphbuild = array();
 		$graphlabes = "";
 		$graphdata = "";
+		$graphdata_info = "";
+		$graphdata_error = "";
 		$count = 0;
-		$query = "SELECT DATE(time) AS date, SEC_TO_TIME(TIME_TO_SEC(time) - TIME_TO_SEC(time)%($graphinterval)) AS intervals, COUNT(*) AS count FROM xfer$query_ext GROUP BY intervals ORDER BY intervals;";
+		$query = "SELECT errorlevel, DATE(time) AS date, SEC_TO_TIME(TIME_TO_SEC(time) - TIME_TO_SEC(time)%($graphinterval)) AS intervals, COUNT(*) AS count FROM xfer$query_ext GROUP BY intervals,errorlevel ORDER BY date,intervals;";
+		//echo "$query<br>";
 		$result = $db->query($query);
 		$starttime = "";
 		if($db->num_rows($result) > 0){
 			while($array = $db->fetch_array_assoc($result)){
 				$time = strtotime($array['date']." ".$array['intervals']);
 				if(!$starttime){$starttime = $time;}
-				$graphbuild[intval($time)]['time'] = intval($time);
-				$graphbuild[intval($time)]['val'] = $array['count'];
-			}
-		}
-		if(!$starttime){$starttime = $timebegin;}
-		for($i = $starttime; $i >= $timebegin; $i -= $graphinterval){
-			if(!isset($graphbuild[$i])){
-				$graphbuild[$i]['time'] = $i;
-				$graphbuild[$i]['val'] = 0;
-			}
-		}
-		for($i = $starttime; $i <= $timeend; $i += $graphinterval){
-			if(!isset($graphbuild[$i])){
-				$graphbuild[$i]['time'] = $i;
-				$graphbuild[$i]['val'] = 0;
+				$graphbuild[intval($time)]['val'.$array['errorlevel']] = $array['count'];
 			}
 		}
 
-		sort($graphbuild);
+		if(!$starttime){$starttime = $timebegin;}
+		for($i = $starttime; $i >= $timebegin; $i -= $graphinterval){
+			$graphbuild[$i]['time'] = $i;
+			if(empty($graphbuild[$i]['valinfo'])){
+				$graphbuild[$i]['valinfo'] = 0;
+			}
+			if(empty($graphbuild[$i]['valerror'])){
+				$graphbuild[$i]['valerror'] = 0;
+			}
+			$graphbuild[$i]['val'] = $graphbuild[$i]['valinfo'] + $graphbuild[$i]['valerror'];
+		}
+		for($i = $starttime; $i <= $timeend; $i += $graphinterval){
+			$graphbuild[$i]['time'] = $i;
+			if(empty($graphbuild[$i]['valinfo'])){
+				$graphbuild[$i]['valinfo'] = 0;
+			}
+			if(empty($graphbuild[$i]['valerror'])){
+				$graphbuild[$i]['valerror'] = 0;
+			}
+			$graphbuild[$i]['val'] = $graphbuild[$i]['valinfo'] + $graphbuild[$i]['valerror'];
+		}
+
+		ksort($graphbuild);
 		foreach($graphbuild as $data){
 			if($graphlabes){
 				$graphlabes .= ",";
 				$graphdata .= ",";
+				$graphdata_info .= ",";
+				$graphdata_error .= ",";
 			}
 			if($timediff > 86400 * 2){
 				$graphlabes .= '"'.date("Y-m-d", $data['time']).'"';
@@ -130,28 +158,37 @@
 				$graphlabes .= '"'.date("Y-m-d H:i:00", $data['time']).'"';
 			}
 			$graphdata .= $data['val'];
+			$graphdata_info .= $data['valinfo'];
+			$graphdata_error .= $data['valerror'];
 		}
 
 		//Log
 
-		$query = "SELECT * FROM xfer$query_ext ORDER BY time DESC LIMIT $mysql_page, ".$_SESSION['login']['max_list_log_items'].";";
-		$result = $db->query($query);
+		echo "<span class=\"hidden\" id=\"datemanipvals\">";
+			$values = array("1 hour","6 hours","12 hours","1 day","3 days","1 week","2 weeks","1 month","3 months","6 months","1 year","2 years","5 years");
+			foreach($values as $value){
+				echo "<div class=\"dropvalue\" onclick=\"setDropDown('datemanip','$value',1);\">$value</div>";
+			}
+			if(empty($_POST['datemanip'])){$_POST['datemanip'] = $values[3];}
 		echo "
+	</span>
+	<div class=\"drop\" id=\"drop\"></div>
 	<div class=\"block\">
-		<br>
-		<div align=\"center\">
-			<form id=\"formfilter\">
-				<input class=\"filter\" type=\"text\" name=\"datebegin\" id=\"datebegin\" value=\"$datebegin\" />
-				<input class=\"filter\" type=\"text\" name=\"dateend\" id=\"dateend\" value=\"$dateend\" />
-				<input class=\"filter\" style=\"width:50%;\" type=\"text\" name=\"filter\" value=\"".$_POST['filter']."\" placeholder=\"Filter (eg. command = 'STOR' AND ip = '127.0.0.1 ' AND NOT file LIKE '%test.txt')\" />
-				<span class=\"filterbut\" onclick=\"showTab('log','xfer','1','0');\">GO</span>
-			<form>
-		</div>
 		<br>
 		<div align=\"center\">
 			<canvas id=\"logbarchart\" width=\"$barwidth\" height=\"$barheight\"></canvas>
 			<br>
 			<span class=\"infosmall\">Interval: $graphintervalstr</span>
+		</div>
+		<br>
+		<div align=\"center\">
+			<form id=\"formfilter\">
+				<input class=\"filter\" style=\"width:100px;\" type=\"text\" name=\"datemanip\" id=\"datemanip\" value=\"".$_POST['datemanip']."\" onclick=\"showDropDown(this.id);\" onkeyup=\"alterDateFilter();\" />
+				<input class=\"filter\" type=\"text\" name=\"datebegin\" id=\"datebegin\" value=\"$datebegin\" />
+				<input class=\"filter\" type=\"text\" name=\"dateend\" id=\"dateend\" value=\"$dateend\" />
+				<input class=\"filter\" style=\"width:50%;\" type=\"text\" name=\"filter\" value=\"".$_POST['filter']."\" placeholder=\"Filter (eg. command = 'STOR' AND ip = '127.0.0.1 ' AND NOT file LIKE '%test.txt')\" />
+				<span class=\"filter\" id=\"filtergo\" onclick=\"showTab('log','xfer','1','0');\">GO</span>
+			<form>
 		</div>
 		<br>
 ";
@@ -160,12 +197,17 @@
 		<br>
 		<table align=\"center\" class=\"detailstitle\">
 ";
+		if($_POST['page'] && $_POST['page'] > 1){$mysql_page = $_POST['page'] * $_SESSION['login']['max_list_log_items'] - $_SESSION['login']['max_list_log_items'];}
+		else{$mysql_page = 0;}
+		$query = "SELECT * FROM xfer$query_ext ORDER BY time DESC LIMIT $mysql_page, ".$_SESSION['login']['max_list_log_items'].";";
+		$result = $db->query($query);
 		if($db->num_rows($result) > 0){
 			echo "
 			<tr>
 				<th class=\"detailstitleleft\">Errorlevel</th>
 				<th class=\"detailstitleleft\">Userid</th>
 				<th class=\"detailstitleleft\">Command</th>
+				<th class=\"detailstitleleft\">Response</th>
 				<th class=\"detailstitleleft\">Filename</th>
 				<th class=\"detailstitleleft\">Size</th>
 				<th class=\"detailstitleleft\">Hostname</th>
@@ -178,11 +220,16 @@
 			while($array = $db->fetch_array_assoc($result)){
 				$errorcolor = "";
 				if($array['errorlevel'] == "error"){$errorcolor = " style=\"color:red;\"";}
+				$returncodestr = "";
+				if($array['response'] && $array['response'] != "-"){
+					$returncodestr = $ftpcode[$array['response']];
+				}
 				echo "
 			<tr class=\"list$switch_list\"$errorcolor>
 				<td class=\"detailsval\">".$array['errorlevel']."</td>
 				<td class=\"detailsval\">".$array['userid']."</td>
 				<td class=\"detailsval\">".$array['command']."</td>
+				<td class=\"detailsval\" title=\"$returncodestr\">".$array['response']."</td>
 				<td class=\"detailsval\">".$array['filename']."</td>
 				<td class=\"detailsval\">".$array['size']."</td>
 				<td class=\"detailsval\">".$array['hostname']."</td>
@@ -197,6 +244,13 @@
 			}
 			echo "
 		</table>
+		<div align=\"center\">
+			<span class=\"infosmall\">Entries: $entries - Info: $entries_info - Error: $entries_error</span>
+		</div>
+		<br>
+";
+			showPageIndex($_POST['pagename'],$_POST['tabname'],$_POST['page'],$pages,$_POST['action']);
+			echo "
 		<br>
 	</div>
 ";
@@ -219,21 +273,48 @@
 		step:10,
 		format:'Y-m-d H:i:00'
 	});
+
 	canvas = document.getElementById("logbarchart");
-	canvas.width = window.innerWidth - 200;
+	canvas.width = window.innerWidth - 150;
 	ctx = canvas.getContext("2d");
 	var data = {
 		labels: [<?php echo $graphlabes; ?>],
 		datasets: [
-		{
-			label: "My Second dataset",
-			fillColor: "rgba(151,187,205,0.5)",
-			strokeColor: "rgba(151,187,205,0.8)",
-			highlightFill: "rgba(151,187,205,0.75)",
-			highlightStroke: "rgba(151,187,205,1)",
-			data: [<?php echo $graphdata; ?>]
-		}
+			{
+				label: "Error",
+				fillColor: "rgba(247,70,74,0.2)",
+				strokeColor: "rgba(247,70,74,1)",
+				pointColor: "rgba(247,70,74,1)",
+				pointStrokeColor: "#fff",
+				pointHighlightFill: "#fff",
+				pointHighlightStroke: "rgba(247,70,74,1)",
+				data: [<?php echo $graphdata_error; ?>]
+			},
+			{
+				label: "Info",
+				fillColor: "rgba(70,191,189,0.2)",
+				strokeColor: "rgba(70,191,189,1)",
+				pointColor: "rgba(70,191,189,1)",
+				pointStrokeColor: "#fff",
+				pointHighlightFill: "#fff",
+				pointHighlightStroke: "rgba(70,191,189,1)",
+				data: [<?php echo $graphdata_info; ?>]
+			},
+			{
+				label: "All",
+				fillColor: "rgba(220,220,220,0.2)",
+				strokeColor: "rgba(220,220,220,1)",
+				pointColor: "rgba(220,220,220,1)",
+				pointStrokeColor: "#fff",
+				pointHighlightFill: "#fff",
+				pointHighlightStroke: "rgba(220,220,220,1)",
+				data: [<?php echo $graphdata; ?>]
+			}
 		]
 	};
-	var myBarChart = new Chart(ctx).Bar(data);
+	if(myBarChart){
+		myBarChart.clear();
+		myBarChart.destroy();
+	}
+	var myBarChart = new Chart(ctx).Line(data);
 </script>

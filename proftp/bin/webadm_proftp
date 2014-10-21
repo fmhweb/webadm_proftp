@@ -32,8 +32,9 @@ our %time = ();
 $time{'chart'}{'taken'} = 0;
 $time{'chart'}{'max'} = 3;
 $time{'loop'}{'sleep'} = 5;
-my %paths = ();
+our %paths = ();
 $paths{'log'} = "/var/log/webadm/proftp.log";
+$paths{'web'} = "/var/www/html/webadm";
 check_file_dir($paths{'log'});
 
 my $progname = basename($0);
@@ -138,7 +139,7 @@ while(1){
 	$time{'loop'}{'taken'} = time - $time{'loop'}{'begin'};
 	$time{'chart'}{'taken'} += $time{'loop'}{'taken'};
 	if($time{'chart'}{'taken'} >= $time{'chart'}{'max'}){
-		create_charts();
+		create_xfer_rrd();
 		$time{'chart'}{'taken'} = 0;
 	}
 }

@@ -23,6 +23,8 @@ imgUser.src = "images/user.png";
 var imgArrowRefresh = new Image(); 
 imgArrowRefresh.src = "images/arrow_refresh.png";
 
+var dropDownOffsetTop = 12;
+var dropDownOffsetLeft = 0;
 var current_pagename = "home";
 var prev_pagename = "home";
 var current_details_id = "";
@@ -31,6 +33,81 @@ var current_acl_path = "";
 var watchTimeout;
 var watchCommadCount = 0;
 var watchCommadCountMax = 10;
+
+function alterDateFilter(){
+	var t = $('#dateend').val().split(/[- :]/);
+	var dateBegin = new Date(t[0],t[1]-1,t[2],t[3],t[4],t[5]);
+	var dateManip = $('#datemanip').val().split(" ");
+	if(dateManip[1] == "hour" || dateManip[1] == "hours"){
+		dateBegin.setHours(dateBegin.getHours() - dateManip[0]);
+	}
+	else if(dateManip[1] == "day" || dateManip[1] == "days"){
+		dateBegin.setHours(dateBegin.getHours() - (dateManip[0] * 24));
+	}
+	else if(dateManip[1] == "week" || dateManip[1] == "weeks"){
+		dateBegin.setHours(dateBegin.getHours() - (dateManip[0] * 24 * 7));
+	}
+	else if(dateManip[1] == "month" || dateManip[1] == "months"){
+		dateBegin.setMonth(dateBegin.getMonth() - dateManip[0]);
+	}
+	else if(dateManip[1] == "year" || dateManip[1] == "years"){
+		dateBegin.setYear(dateBegin.getYear() - dateManip[0] + 1900);
+	}
+	else{
+		dateBegin.setHours(dateBegin.getHours() - 24);
+	}
+
+	var YYYY = dateBegin.getFullYear();
+	var MM = ((dateBegin.getMonth() + 1 < 10) ? '0' : '') + (dateBegin.getMonth() + 1);
+	var DD = ((dateBegin.getDate() < 10) ? '0' : '') + dateBegin.getDate();
+	var HH = ((dateBegin.getHours() < 10) ? '0' : '') + dateBegin.getHours();
+	var mm = ((dateBegin.getMinutes() < 10) ? '0' : '') + dateBegin.getMinutes();
+	var ss = ((dateBegin.getSeconds() < 10) ? '0' : '') + dateBegin.getSeconds();
+
+	$('#datebegin').val(YYYY+'-'+MM+'-'+DD+' '+HH+':'+mm+':'+ss);
+	return;
+}
+
+function setDropDown(id,value,action){
+	$('#'+id).val(value);
+	hideDropDown();
+	if(action == 1){
+		alterDateFilter();
+		$('#filtergo').click();
+	}
+	return;
+}
+
+function hideDropDown(){
+	$('#drop').css({'display':'none','visibility':'hidden'});
+	return;
+}
+
+function showDropDown(id){
+	var elDrop = $('#drop');
+	var elFilter = $('#'+id);
+	var elFilterVals = $('#'+id+'vals');
+	if(elDrop.css('display') == "none" && elFilterVals.html()){
+		elDrop.html(elFilterVals.html());
+		elDrop.width(elFilter.width());
+		var offset = elFilter.offset();
+		var topval = offset.top + elFilter.height() + dropDownOffsetTop - $(document).scrollTop();
+		var leftval = offset.left;
+		elDrop.css({'top':topval,'left':leftval});
+		elDrop.css({'display':'block','visibility':'visible'});
+	}
+	else{
+		elDrop.css({'display':'none','visibility':'hidden'});
+	}
+	return;
+}
+
+function evalFilter(e,pagename,tabname,page,action){
+	if(e.keyCode == 13){
+		showTab(pagename,tabname,page,action);
+	}
+	return;
+}
 
 function showTab(pagename,tabname,page,action){
 	if (window.XMLHttpRequest){
