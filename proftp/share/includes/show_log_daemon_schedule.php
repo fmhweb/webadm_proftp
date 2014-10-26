@@ -11,7 +11,6 @@
 		$timeend = strtotime($dateend);
 		$timediff = $timeend - $timebegin;
 		
-		require('../includes/inc_ftp_codes.php');
 		require('../includes/inc_chart_interval.php');
 
 		require('../classes/mysql.php');
@@ -22,23 +21,23 @@
 		$entries = 0;
 		$entries_info = 0;
 		$entries_error = 0;
-		$query_ext = " WHERE time > '".$datebegin."' AND time < '".$dateend."'";
+		$query_ext = " WHERE created > '".$datebegin."' AND created < '".$dateend."'";
 		if(!empty($_POST['filter'])){
 			$query_ext .= " AND ".$_POST['filter'];
 		}
 		else{
 			$_POST['filter'] = "";
 		}
-		$query = "SELECT errorlevel,COUNT(*) as count FROM xfer$query_ext GROUP BY errorlevel;";
+		$query = "SELECT status,COUNT(*) as count FROM guicmds$query_ext GROUP BY status;";
 		//echo "$query<br>";
 		$result = $db->query($query);
 		if($db->num_rows($result) > 0){
 			while($array = $db->fetch_array_assoc($result)){
 				$entries += $array['count'];
-				if($array['errorlevel'] == "info"){
+				if($array['status'] == "info"){
 					$entries_info = $array['count'];
 				}
-				elseif($array['errorlevel'] == "error"){
+				elseif($array['status'] == "error"){
 					$entries_error = $array['count'];
 				}
 			}
@@ -56,7 +55,7 @@
 		$graphdata_info = "";
 		$graphdata_error = "";
 		$count = 0;
-		$query = "SELECT errorlevel, DATE(time) AS date, SEC_TO_TIME(TIME_TO_SEC(time) - TIME_TO_SEC(time)%($graphinterval)) AS intervals, COUNT(*) AS count FROM xfer$query_ext GROUP BY intervals,errorlevel ORDER BY date,intervals;";
+		$query = "SELECT status, DATE(created) AS date, SEC_TO_TIME(TIME_TO_SEC(created) - TIME_TO_SEC(created)%($graphinterval)) AS intervals, COUNT(*) AS count FROM guicmds$query_ext GROUP BY intervals,status ORDER BY date,intervals;";
 		//echo "$query<br>";
 		$result = $db->query($query);
 		$starttime = "";
@@ -64,7 +63,7 @@
 			while($array = $db->fetch_array_assoc($result)){
 				$time = strtotime($array['date']." ".$array['intervals']);
 				if(!$starttime){$starttime = $time;}
-				$graphbuild[intval($time)]['val'.$array['errorlevel']] = $array['count'];
+				$graphbuild[intval($time)]['val'.$array['status']] = $array['count'];
 			}
 		}
 
@@ -136,7 +135,7 @@
 				<input class=\"filter\" type=\"text\" name=\"datebegin\" id=\"datebegin\" value=\"$datebegin\" />
 				<input class=\"filter\" type=\"text\" name=\"dateend\" id=\"dateend\" value=\"$dateend\" />
 				<input class=\"filter\" style=\"width:50%;\" type=\"text\" name=\"filter\" value=\"".$_POST['filter']."\" placeholder=\"Filter (eg. command = 'STOR' AND ip = '127.0.0.1 ' AND NOT file LIKE '%test.txt')\" />
-				<span class=\"filter\" id=\"filtergo\" onclick=\"showTab('log','xfer','1','0');\">GO</span>
+				<span class=\"filter\" id=\"filtergo\" onclick=\"showTab('log','xfer','1','0','');\">GO</span>
 			<form>
 		</div>
 		<br>
@@ -148,43 +147,34 @@
 ";
 		if($_POST['page'] && $_POST['page'] > 1){$mysql_page = $_POST['page'] * $_SESSION['login']['max_list_log_items'] - $_SESSION['login']['max_list_log_items'];}
 		else{$mysql_page = 0;}
-		$query = "SELECT * FROM xfer$query_ext ORDER BY time DESC LIMIT $mysql_page, ".$_SESSION['login']['max_list_log_items'].";";
+		$query = "SELECT * FROM guicmds$query_ext ORDER BY created DESC LIMIT $mysql_page, ".$_SESSION['login']['max_list_log_items'].";";
 		$result = $db->query($query);
+		$status = array("Pending","Failed","Completed");
 		if($db->num_rows($result) > 0){
 			echo "
 			<tr>
-				<th class=\"list\">Time</th>
-				<th class=\"list\">Errorlevel</th>
-				<th class=\"list\">Userid</th>
-				<th class=\"list\">Hostname</th>
-				<th class=\"list\">IP</th>
+				<th class=\"list\">Status</th>
 				<th class=\"list\">Command</th>
-				<th class=\"list\">Filename</th>
-				<th class=\"list\">Size</th>
-				<th class=\"list\">Response</th>
-				<th class=\"list\">Timespent</th>
+				<th class=\"list\">Params</th>
+				<th class=\"list\">Result</th>
+				<th class=\"list\">Created by</th>
+				<th class=\"list\">Created</th>
+				<th class=\"list\">Compledted</th>
 			</tr>
 ";
 			$switch_list = 1;
 			while($array = $db->fetch_array_assoc($result)){
 				$errorcolor = "";
-				if($array['errorlevel'] == "error"){$errorcolor = " style=\"color:red;\"";}
-				$returncodestr = "";
-				if($array['response'] && $array['response'] != "-"){
-					$returncodestr = $ftpcode[$array['response']];
-				}
+				if($array['status'] == 1){$errorcolor = " style=\"color:red;\"";}
 				echo "
 			<tr class=\"list$switch_list\"$errorcolor>
-				<td class=\"list\">".$array['time']."</td>
-				<td class=\"list\">".$array['errorlevel']."</td>
-				<td class=\"list\">".$array['userid']."</td>
-				<td class=\"list\">".$array['hostname']."</td>
-				<td class=\"list\">".$array['ip']."</td>
+				<td class=\"list\">".$status[$array['status']]."</td>
 				<td class=\"list\">".$array['command']."</td>
-				<td class=\"list\">".$array['filename']."</td>
-				<td class=\"list\">".$array['size']."</td>
-				<td class=\"list\">".$array['response']." - $returncodestr</td>
-				<td class=\"list\">".$array['timespent']."</td>
+				<td class=\"list\">".$array['params']."</td>
+				<td class=\"list\">".$array['result']."</td>
+				<td class=\"list\">".$array['created_by']."</td>
+				<td class=\"list\">".$array['created']."</td>
+				<td class=\"list\">".$array['completed']."</td>
 			</tr>
 ";
 				if($switch_list){$switch_list = 0;}
@@ -196,11 +186,11 @@
 			<span class=\"infosmall\">Entries: $entries - Info: $entries_info - Error: $entries_error</span>
 		</div>
 ";
+			showPageIndex($_POST['pagename'],$_POST['tabname'],$_POST['page'],$pages,$_POST['action']);
 		}
 		else{
 			echo "<div align=\"center\" class=\"error\">No log entries found</div>";
 		}
-		showPageIndex($_POST['pagename'],$_POST['tabname'],$_POST['page'],$pages,$_POST['action']);
 		echo "
 		<br>
 	</div>

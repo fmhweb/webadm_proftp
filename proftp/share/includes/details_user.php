@@ -62,57 +62,144 @@
 		if($details['files_out_avail'] && $details['files_out_used'] != "n/a"){$details['files_out_used_percent'] = round((100 / $details['files_out_avail']) * $details['files_out_used'],2);}
 		if($details['files_xfer_avail'] && $details['files_xfer_used'] != "n/a"){$details['files_xfer_used_percent'] = round((100 / $details['files_xfer_avail']) * $details['files_xfer_used'],2);}
 		echo "
-	<div class=\"title\" onclick=\"showElement('detailsuser');\">User</div>
+	<div class=\"tabs\">
+		<table>
+			<tr>
+				<td class=\"tablink\" onclick=\"showUserElement('detailsuser');\">User</td>
+";
+		if($details['userid']){
+			echo "
+				<td class=\"tablink\" onclick=\"showUserElement('detailsmembers');\">Groups</td>
+				<td class=\"tablink\" onclick=\"showUserElement('detailsquota');\">Quota</td>
+				<td class=\"tablink\" onclick=\"showUserElement('detailsacl');\">Acl</td>
+				<td class=\"tablink\" onclick=\"showUserElement('detailskey');\">Keys</td>
+";
+		}
+		echo "
+			</tr>
+		</table>
+	</div>
 	<br>
 	<div class=\"block\" id=\"detailsuser\">
 		<div align=\"center\" id=\"resultsaveuser\"></div>
 		<form name=\"formuser\">
 		<table align=\"center\" class=\"detailstitle\">
 			<tr>
-				<td class=\"detailstitle\">Username:</td><td class=\"detailsval\"><input class=\"details\" type=\"text\" name=\"user[userid]\" id=\"useriduser\" value=\"".$details['userid']."\" /></td>
-				<td class=\"detailstitle\">Password:<br><span class=\"infosmall\">(".$_SESSION['default']['min_passwd_length']."-".$_SESSION['default']['max_passwd_length']." characters)</span></td><td class=\"detailsval\"><input class=\"details\" type=\"password\" name=\"password[passwd]\" value=\"\" /><br><input class=\"details\" type=\"password\" name=\"password[repasswd]\" value=\"\" /></td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Username</span>
+					<br>
+					<input class=\"details\" type=\"text\" name=\"user[userid]\" id=\"useriduser\" value=\"".$details['userid']."\" />
+				</td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Password (".$_SESSION['default']['min_passwd_length']."-".$_SESSION['default']['max_passwd_length']." characters)</span>
+					<br>
+					<input class=\"details\" type=\"password\" name=\"password[passwd]\" value=\"\" />
+					<br>
+					<input class=\"details\" type=\"password\" name=\"password[repasswd]\" value=\"\" />
+				</td>
 			</tr>
 			<tr>
-				<td class=\"detailstitle\">Surname:</td><td class=\"detailsval\"><input class=\"details\" type=\"text\" name=\"user[surname]\" value=\"".$details['surname']."\" /></td>
-				<td class=\"detailstitle\">Firstname:</td><td class=\"detailsval\"><input class=\"details\" type=\"text\" name=\"user[firstname]\" value=\"".$details['firstname']."\" /></td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Surname</span>
+					<br>
+					<input class=\"details\" type=\"text\" name=\"user[surname]\" value=\"".$details['surname']."\" />
+				</td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Firstname</span>
+					<br>
+					<input class=\"details\" type=\"text\" name=\"user[firstname]\" value=\"".$details['firstname']."\" />
+				</td>
 			</tr>
 			<tr>
-				<td class=\"detailstitle\">Email:</td><td class=\"detailsval\"><input class=\"details\" type=\"text\" name=\"user[email]\" value=\"".$details['email']."\" /></td>
-				<td class=\"detailstitle\">Telephon:</td><td class=\"detailsval\"><input class=\"details\" type=\"text\" name=\"user[telephon]\" value=\"".$details['telephon']."\" /></td>
+				<td class=\"detailsval\" colspan=\"2\">
+					<span class=\"detailstitle\">Email</span>
+					<br>
+					<input class=\"details\" type=\"text\" name=\"user[email]\" value=\"".$details['email']."\" />
+				</td>
 			</tr>
 			<tr>
-				<td class=\"detailstitle\">Company:</td><td class=\"detailsval\"><input class=\"details\" type=\"text\" name=\"user[company]\" value=\"".$details['company']."\" /></td>
-				<td class=\"detailstitle\" colspan=\"2\"></td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Company</span>
+					<br>
+					<input class=\"details\" type=\"text\" name=\"user[company]\" value=\"".$details['company']."\" />
+				</td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Telephon</span>
+					<br>
+					<input class=\"details\" type=\"text\" name=\"user[telephon]\" value=\"".$details['telephon']."\" />
+				</td>
 			</tr>
 			<tr>
-				<td class=\"detailstitle\">Address:</td><td class=\"detailsval\"><textarea class=\"details\" name=\"user[address]\">".$details['address']."</textarea></td>
-				<td class=\"detailstitle\">Comment:</td><td class=\"detailsval\"><textarea class=\"details\" name=\"user[comment]\">".$details['comment']."</textarea></td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Address</span>
+					<br>
+					<textarea class=\"details\" name=\"user[address]\">".$details['address']."</textarea>
+				</td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Comment</span>
+					<br>
+					<textarea class=\"details\" name=\"user[comment]\">".$details['comment']."</textarea>
+				</td>
 			</tr>
 			<tr>
-				<th class=\"detailstitle\" colspan=\"4\">Settings</th>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Expires</span>
+					<br>
+					<input class=\"details\" type=\"text\" name=\"user[expires]\" id=\"expires\" value=\"".$details['expires']."\" />
+				</td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Disabled</span>
+					<br>
+					<input type=\"checkbox\" name=\"user[disabled]\"".$checked[$details['disabled']]." />
+				</td>
 			</tr>
 			<tr>
-				<td class=\"detailstitle\">Expires:</td><td class=\"detailsval\"><input class=\"details\" type=\"text\" name=\"user[expires]\" id=\"expires\" value=\"".$details['expires']."\" /></td>
-				<td class=\"detailstitle\">Disabled:</td><td class=\"detailsval\"><input type=\"checkbox\" name=\"user[disabled]\"".$checked[$details['disabled']]." /></td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Homedir</span>
+					<br>
+					<input onclick=\"showTab('folder','tree','1','1','');\" class=\"details\" type=\"text\" name=\"user[homedir]\" id=\"homedir\" value=\"".$details['homedir']."\" dsiabled />
+				</td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Shell</span>
+					<br>
+					<input class=\"details\" type=\"text\" name=\"user[shell]\" value=\"".$details['shell']."\" />
+				</td>
 			</tr>
 			<tr>
-				<td class=\"detailstitle\">Homedir:</td><td class=\"detailsval\"><input onclick=\"showTab('folder','tree','1','1');\" class=\"details\" type=\"text\" name=\"user[homedir]\" id=\"homedir\" value=\"".$details['homedir']."\" dsiabled /></td>
-				<td class=\"detailstitle\">Shell:</td><td class=\"detailsval\"><input class=\"details\" type=\"text\" name=\"user[shell]\" value=\"".$details['shell']."\" /></td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Uid</span>
+					<br>
+					<input class=\"details\" type=\"text\" name=\"info[uid]\" value=\"".$details['uid']."\" disabled />
+				</td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Gid</span>
+					<br>
+					<input class=\"details\" type=\"text\" name=\"info[gid]\" value=\"".$details['gid']."\" disabled />
+				</td>
 			</tr>
 			<tr>
-				<th class=\"detailstitle\" colspan=\"4\">Info</th>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Created by</span>
+					<br>
+					<input class=\"details\" type=\"text\" name=\"info[created_by]\" value=\"".$details['created_by']."\" disabled />
+				</td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Created</span>
+					<br>
+					<input class=\"details\" type=\"text\" name=\"info[created]\" value=\"".$details['created']."\" disabled />
+				</td>
 			</tr>
 			<tr>
-				<td class=\"detailstitle\">Uid:</td><td class=\"detailsval\"><input class=\"details\" type=\"text\" name=\"info[uid]\" value=\"".$details['uid']."\" disabled /></td>
-				<td class=\"detailstitle\">Gid:</td><td class=\"detailsval\"><input class=\"details\" type=\"text\" name=\"info[gid]\" value=\"".$details['gid']."\" disabled /></td>
-			</tr>
-			<tr>
-				<td class=\"detailstitle\">Created by:</td><td class=\"detailsval\"><input class=\"details\" type=\"text\" name=\"info[created_by]\" value=\"".$details['created_by']."\" disabled /></td>
-				<td class=\"detailstitle\">Created:</td><td class=\"detailsval\"><input class=\"details\" type=\"text\" name=\"info[created]\" value=\"".$details['created']."\" disabled /></td>
-			</tr>
-			<tr>
-				<td class=\"detailstitle\">Updated by:</td><td class=\"detailsval\"><input class=\"details\" type=\"text\" name=\"info[created_by]\" value=\"".$details['updated_by']."\" disabled /></td>
-				<td class=\"detailstitle\">Updated:</td><td class=\"detailsval\"><input class=\"details\" type=\"text\" name=\"info[created]\" value=\"".$details['updated']."\" disabled /></td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Updated by</span>
+					<br>
+					<input class=\"details\" type=\"text\" name=\"info[created_by]\" value=\"".$details['updated_by']."\" disabled />
+				</td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Updated</span>
+					<br>
+					<input class=\"details\" type=\"text\" name=\"info[created]\" value=\"".$details['updated']."\" disabled />
+				</td>
 			</tr>
 		</table>
 		<br>
@@ -130,78 +217,109 @@
 		</form>
 		<br>
 	</div>
-	<br>
-	<div class=\"title\" onclick=\"showElement('detailsquota');\">User quota</div>
-	<br>
 	<div class=\"block\" id=\"detailsquota\">
+		<br>
 		<div align=\"center\" id=\"resultsavequota\"></div>
 		<form name=\"formquota\">
 		<input type=\"hidden\" name=\"user[userid]\" id=\"useridquota\" value=\"".$details['userid']."\" />
 		<table align=\"center\" class=\"detailstitle\">
 			<tr>
-				<th class=\"detailstitle\" colspan=\"4\">Quota settings</th>
-			</tr>
-			<tr>
-				<td class=\"detailstitle\">Quotas per session:</td><td class=\"detailsval\"><select class=\"details\" name=\"quota[per_session]\"><option".$selected['per_session_false'].">False</option><option".$selected['per_session_true'].">True</option></select></td>
-			<td class=\"detailstitle\">Limit:</td><td class=\"detailsval\"><select class=\"details\" name=\"quota[limit_type]\"><option".$selected['limit_type_soft'].">Soft</option><option".$selected['limit_type_hard'].">Hard</option></select></td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Quotas per session</span>
+					<br>
+					<select class=\"details\" name=\"quota[per_session]\">
+						<option".$selected['per_session_false'].">False</option>
+						<option".$selected['per_session_true'].">True</option>
+					</select>
+				</td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Limit</span>
+					<br>
+					<select class=\"details\" name=\"quota[limit_type]\">
+						<option".$selected['limit_type_soft'].">Soft</option>
+						<option".$selected['limit_type_hard'].">Hard</option>
+					</select>
+				</td>
 			</tr>
 		</table>
 		<table align=\"center\" class=\"detailstitle\">
 			<tr>
-				<th class=\"detailstitle\" colspan=\"4\">Quotas bytes</th>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Bytes in available</span>
+					<br>
+					<input class=\"detailsquota\" type=\"text\" name=\"quota[bytes_in_avail]\" value=\"".$details['bytes_in_avail']."\" onkeyup=\"calcBytes(this.value,'resultsavequota');\" />
+				</td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Bytes out available</span>
+					<br>
+					<input class=\"detailsquota\" type=\"text\" name=\"quota[bytes_out_avail]\" value=\"".$details['bytes_out_avail']."\" onkeyup=\"calcBytes(this.value,'resultsavequota');\" />
+				</td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Bytes in/out available</span>
+					<br>
+					<input class=\"detailsquota\" type=\"text\" name=\"quota[bytes_xfer_avail]\" value=\"".$details['bytes_xfer_avail']."\" onkeyup=\"calcBytes(this.value,'resultsavequota');\" />
+				</td>
 			</tr>
 			<tr>
-				<td class=\"detailstitletop\">Bytes in available</td>
-				<td class=\"detailstitletop\">Bytes out available</td>
-				<td class=\"detailstitletop\">Bytes in/out available</td>
+				<td class=\"detailsval\">".$details['bytes_in_used_percent']."%</td>
+				<td class=\"detailsval\">".$details['bytes_out_used_percent']."%</td>
+				<td class=\"detailsval\">".$details['bytes_xfer_used_percent']."%</td>
 			</tr>
 			<tr>
-				<td class=\"detailsvaltop\"><input class=\"detailsquota\" type=\"text\" name=\"quota[bytes_in_avail]\" value=\"".$details['bytes_in_avail']."\" onkeyup=\"calcBytes(this.value,'resultsavequota');\" /></td>
-				<td class=\"detailsvaltop\"><input class=\"detailsquota\" type=\"text\" name=\"quota[bytes_out_avail]\" value=\"".$details['bytes_out_avail']."\" onkeyup=\"calcBytes(this.value,'resultsavequota');\" /></td>
-				<td class=\"detailsvaltop\"><input class=\"detailsquota\" type=\"text\" name=\"quota[bytes_xfer_avail]\" value=\"".$details['bytes_xfer_avail']."\" onkeyup=\"calcBytes(this.value,'resultsavequota');\" /></td>
+				<td class=\"detailsval\">
+					<input class=\"detailsquota\" type=\"text\" name=\"info[bytes_in_used]\" value=\"".$details['bytes_in_used']."\" disabled />
+					<br>
+					<span class=\"detailstitle\">Bytes in used</span>
+				</td>
+				<td class=\"detailsval\">
+					<input class=\"detailsquota\" type=\"text\" name=\"info[bytes_out_used]\" value=\"".$details['bytes_out_used']."\" disabled />
+					<br>
+					<span class=\"detailstitle\">Bytes out used</span>
+				</td>
+				<td class=\"detailsval\">
+					<input class=\"detailsquota\" type=\"text\" name=\"info[bytes_xfer_used]\" value=\"".$details['bytes_xfer_used']."\" disabled />
+					<br>
+					<span class=\"detailstitle\">Bytes in/out used</span>
+				</td>
 			</tr>
 			<tr>
-				<td class=\"detailsvaltop\">".$details['bytes_in_used_percent']."%</td>
-				<td class=\"detailsvaltop\">".$details['bytes_out_used_percent']."%</td>
-				<td class=\"detailsvaltop\">".$details['bytes_xfer_used_percent']."%</td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Files in available</span>
+					<br>
+					<input class=\"detailsquota\" type=\"text\" name=\"quota[files_in_avail]\" value=\"".$details['files_in_avail']."\" />
+				</td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Files out available</span>
+					<br>
+					<input class=\"detailsquota\" type=\"text\" name=\"quota[files_out_avail]\" value=\"".$details['files_out_avail']."\" />
+				</td>
+				<td class=\"detailsval\">
+					<span class=\"detailstitle\">Files in/out available</span>
+					<br>
+					<input class=\"detailsquota\" type=\"text\" name=\"quota[files_xfer_avail]\" value=\"".$details['files_xfer_avail']."\" />
+				</td>
 			</tr>
 			<tr>
-				<td class=\"detailsvaltop\"><input class=\"detailsquota\" type=\"text\" name=\"info[bytes_in_used]\" value=\"".$details['bytes_in_used']."\" disabled /></td>
-				<td class=\"detailsvaltop\"><input class=\"detailsquota\" type=\"text\" name=\"info[bytes_out_used]\" value=\"".$details['bytes_out_used']."\" disabled /></td>
-				<td class=\"detailsvaltop\"><input class=\"detailsquota\" type=\"text\" name=\"info[bytes_xfer_used]\" value=\"".$details['bytes_xfer_used']."\" disabled /></td>
+				<td class=\"detailsval\">".$details['files_in_used_percent']."%</td>
+				<td class=\"detailsval\">".$details['files_out_used_percent']."%</td>
+				<td class=\"detailsval\">".$details['files_xfer_used_percent']."%</td>
 			</tr>
 			<tr>
-				<td class=\"detailstitletop\">Bytes in used</td>
-				<td class=\"detailstitletop\">Bytes out used</td>
-				<td class=\"detailstitletop\">Bytes in/out used</td>
-			</tr>
-			<tr>
-				<th class=\"detailstitle\" colspan=\"4\">Quotas files</th>
-			</tr>
-			<tr>
-				<td class=\"detailstitletop\">Files in available</td>
-				<td class=\"detailstitletop\">Files out available</td>
-				<td class=\"detailstitletop\">Files in/out available</td>
-			</tr>
-			<tr>
-				<td class=\"detailsvaltop\"><input class=\"detailsquota\" type=\"text\" name=\"files_in_avail\" value=\"".$details['files_in_avail']."\" /></td>
-				<td class=\"detailsvaltop\"><input class=\"detailsquota\" type=\"text\" name=\"files_out_avail\" value=\"".$details['files_out_avail']."\" /></td>
-				<td class=\"detailsvaltop\"><input class=\"detailsquota\" type=\"text\" name=\"files_xfer_avail\" value=\"".$details['files_xfer_avail']."\" /></td>
-			</tr>
-			<tr>
-				<td class=\"detailsvaltop\">".$details['files_in_used_percent']."%</td>
-				<td class=\"detailsvaltop\">".$details['files_out_used_percent']."%</td>
-				<td class=\"detailsvaltop\">".$details['files_xfer_used_percent']."%</td>
-			</tr>
-			<tr>
-				<td class=\"detailsvaltop\"><input class=\"detailsquota\" type=\"text\" name=\"files_in_used\" value=\"".$details['files_in_used']."\" disabled /></td>
-				<td class=\"detailsvaltop\"><input class=\"detailsquota\" type=\"text\" name=\"files_out_used\" value=\"".$details['files_out_used']."\" disabled /></td>
-				<td class=\"detailsvaltop\"><input class=\"detailsquota\" type=\"text\" name=\"files_xfer_used\" value=\"".$details['files_xfer_used']."\" disabled /></td>
-			</tr>
-			<tr>
-				<td class=\"detailstitletop\">Files in used</td>
-				<td class=\"detailstitletop\">Files out used</td>
-				<td class=\"detailstitletop\">Files in/out used</td>
+				<td class=\"detailsval\">
+					<input class=\"detailsquota\" type=\"text\" name=\"info[files_in_used]\" value=\"".$details['files_in_used']."\" disabled />
+					<br>
+					<span class=\"detailstitle\">Files in used</span>
+				</td>
+				<td class=\"detailsval\">
+					<input class=\"detailsquota\" type=\"text\" name=\"info[files_out_used]\" value=\"".$details['files_out_used']."\" disabled />
+					<br>
+					<span class=\"detailstitle\">Files out used</span>
+				</td>
+				<td class=\"detailsval\">
+					<input class=\"detailsquota\" type=\"text\" name=\"info[files_xfer_used]\" value=\"".$details['files_xfer_used']."\" disabled />
+					<br>
+					<span class=\"detailstitle\">Files in/out used</span>
+				</td>
 			</tr>
 ";
 		echo "
@@ -214,19 +332,23 @@
 		<br>
 	</div>
 ";
-		$query = "SELECT * FROM acl WHERE userid = '".$details['userid']."' ORDER BY path;";
+		$query = "SELECT * FROM useracl WHERE userid = '".$details['userid']."' AND type = 'user' ORDER BY path;";
 		$result = $db->query($query);
-		if($db->num_rows($result) > 0){
-			echo "
-	<br>
-	<div class=\"title\" onclick=\"showElement('detailsacl');\">User acl</div>
-	<br>
+		echo "
 	<div class=\"block\" id=\"detailsacl\">
+		<br>
 		<div align=\"center\" id=\"resultsaveacl\"></div>
 		<table align=\"center\" class=\"detailstitle\">
-			<tr>
-				<th class=\"detailstitletop\" colspan=\"10\">User ACLs</th>
-			</tr>
+                        <tr>
+                                <td colspan=\"10\">
+                                        <a href=\"#\" onclick=\"showTab('folder','tree','1','3','".$details['userid']."');\">
+                                                <img src=\"images/folder.png\" />
+                                                Add folder
+                                        </a>
+					<br>
+					<br>
+                                </td>
+                        </tr>
 			<tr>
 				<th class=\"detailstitletop\">Path</th>
 				<th class=\"detailstitletop\">Read</th>
@@ -240,38 +362,134 @@
 				<th></th>
 			</tr>
 ";
-			$switch_list = 1;
-			$checked = array("false" => "","true" => " checked");
+		$switch_list = 1;
+		$checked = array("false" => "","true" => " checked");
+		if($db->num_rows($result) > 0){
+			$idcount = 0;
 			while($array = $db->fetch_array_assoc($result)){
 				echo "
-			<tr>
-				<td class=\"detailsvaltop\">".$array['path']."</td>
-				<td class=\"detailsvaltop\"><input type=\"checkbox\" id=\"read".$array['userid']."\" onclick=\"addAcl('".$array['userid']."','0','".$array['path']."');\";".$checked[$array['read_acl']]." /></td>
-				<td class=\"detailsvaltop\"><input type=\"checkbox\" id=\"write".$array['userid']."\" onclick=\"addAcl('".$array['userid']."','0','".$array['path']."');\";".$checked[$array['write_acl']]." /></td>
-				<td class=\"detailsvaltop\"><input type=\"checkbox\" id=\"delete".$array['userid']."\" onclick=\"addAcl('".$array['userid']."','0','".$array['path']."');\";".$checked[$array['delete_acl']]." /></td>
-				<td class=\"detailsvaltop\"><input type=\"checkbox\" id=\"create".$array['userid']."\" onclick=\"addAcl('".$array['userid']."','0','".$array['path']."');\";".$checked[$array['create_acl']]." /></td>
-				<td class=\"detailsvaltop\"><input type=\"checkbox\" id=\"modify".$array['userid']."\" onclick=\"addAcl('".$array['userid']."','0','".$array['path']."');\";".$checked[$array['modify_acl']]." /></td>
-				<td class=\"detailsvaltop\"><input type=\"checkbox\" id=\"move".$array['userid']."\" onclick=\"addAcl('".$array['userid']."','0','".$array['path']."');\";".$checked[$array['move_acl']]." /></td>
-				<td class=\"detailsvaltop\"><input type=\"checkbox\" id=\"view".$array['userid']."\" onclick=\"addAcl('".$array['userid']."','0','".$array['path']."');\";".$checked[$array['view_acl']]." /></td>
-				<td class=\"detailsvaltop\"><input type=\"checkbox\" id=\"navigate".$array['userid']."\" onclick=\"addAcl('".$array['userid']."','0','".$array['path']."');\";".$checked[$array['navigate_acl']]." /></td>
-				<td class=\"detailsvaltop\"><img src=\"images/delete.png\" onclick=\"remAcl('".$array['userid']."','".$array['path']."',1);\" /></td>
+			<tr class=\"list$switch_list\">
+				<td class=\"detailsval\">".$array['path']."</td>
+				<td class=\"detailsvalacl\"><input type=\"checkbox\" id=\"read$idcount\" onclick=\"addAcl($idcount,'".$array['userid']."','0','user','".$array['path']."');\";".$checked[$array['read_acl']]." /></td>
+				<td class=\"detailsvalacl\"><input type=\"checkbox\" id=\"write$idcount\" onclick=\"addAcl($idcount,'".$array['userid']."','0','user','".$array['path']."');\";".$checked[$array['write_acl']]." /></td>
+				<td class=\"detailsvalacl\"><input type=\"checkbox\" id=\"delete$idcount\" onclick=\"addAcl($idcount,'".$array['userid']."','0','user','".$array['path']."');\";".$checked[$array['delete_acl']]." /></td>
+				<td class=\"detailsvalacl\"><input type=\"checkbox\" id=\"create$idcount\" onclick=\"addAcl($idcount,'".$array['userid']."','0','user','".$array['path']."');\";".$checked[$array['create_acl']]." /></td>
+				<td class=\"detailsvalacl\"><input type=\"checkbox\" id=\"modify$idcount\" onclick=\"addAcl($idcount,'".$array['userid']."','0','user','".$array['path']."');\";".$checked[$array['modify_acl']]." /></td>
+				<td class=\"detailsvalacl\"><input type=\"checkbox\" id=\"move$idcount\" onclick=\"addAcl($idcount,'".$array['userid']."','0','user','".$array['path']."');\";".$checked[$array['move_acl']]." /></td>
+				<td class=\"detailsvalacl\"><input type=\"checkbox\" id=\"view$idcount\" onclick=\"addAcl($idcount,'".$array['userid']."','0','user','".$array['path']."');\";".$checked[$array['view_acl']]." /></td>
+				<td class=\"detailsvalacl\"><input type=\"checkbox\" id=\"navigate$idcount\" onclick=\"addAcl($idcount,'".$array['userid']."','0','user','".$array['path']."');\";".$checked[$array['navigate_acl']]." /></td>
+				<td class=\"detailsvalacl\"><img src=\"images/delete.png\" onclick=\"remAcl('".$array['userid']."','user','".$array['path']."',1);\" /></td>
 			</tr>
 ";
 				if($switch_list){$switch_list = 0;}
 				else{$switch_list = 1;}
+				$idcount++;
 			}
-			echo"
+		}
+		echo"
 		</table>
+		<br>
 	</div>
+	<div class=\"block\" id=\"detailsmembers\">
+                <br>
+                <div align=\"center\" id=\"resultsavemembers\"></div>
+";
+                if($details['userid']){
+                        $query = "SELECT groupid FROM groupmembers WHERE userid = '".$details['userid']."';";
+                        $result = $db->query($query);
+                        echo "
+                <div class=\"options\">
+                        <a href=\"#\" onclick=\"showTab('user','group','1','2','".$details['userid']."');\">
+                                <img src=\"images/group.png\" />
+                                Add group
+                        </a>
+                </div>
+                <table align=\"center\" class=\"list\">
+";
+                        if($db->num_rows($result) > 0){
+                                echo "
+                        <tr>
+                                <th class=\"list\">User</th>
+				<th></th>
+                        </tr>
+";
+                                $switch_list = 1;
+                                while($array = $db->fetch_array_assoc($result)){
+                                         echo "
+                        <tr class=\"list$switch_list\">
+                                <td class=\"list\">".$array['groupid']."</td>
+				<td class=\"list\" style=\"text-align:right;\">
+					<img src=\"images/delete.png\" onclick=\"addGroupMember('".$array['groupid']."','".$details['userid']."',1,1);\" />
+				</td>
+                        </tr>
+";
+                                        if($switch_list){$switch_list = 0;}
+                                        else{$switch_list = 1;}
+                                }
+                        }
+                        echo "
+                </table>
+                <br>
+        </div>
+";
+		}
+		echo "
+	<div class=\"block\" id=\"detailskey\">
+                <br>
+                <div align=\"center\" id=\"resultsavekey\"></div>
+";
+                if($details['userid']){
+                        $query = "SELECT * FROM userkeys WHERE userid = '".$details['userid']."';";
+                        $result = $db->query($query);
+                        echo "
+                <div class=\"options\">
+                        <a href=\"#\" onclick=\"showTab('user','key','1','1','".$details['userid']."');\">
+                                <img src=\"images/key.png\" />
+                                Add key
+                        </a>
+                </div>
+                <table align=\"center\" class=\"list\">
+";
+                        if($db->num_rows($result) > 0){
+                                echo "
+                        <tr>
+                                <th class=\"list\">Key</th>
+                                <th></th>
+                        </tr>
+";
+                                $switch_list = 1;
+                                while($array = $db->fetch_array_assoc($result)){
+                                         echo "
+                        <tr class=\"list$switch_list\">
+                                <td class=\"list\">".$array['keyid']."</td>
+                                <td class=\"list\" style=\"text-align:right;\">
+                                        <img src=\"images/delete.png\" onclick=\"addKey('".$details['userid']."','".$array['keyid']."',1,1);\" />
+                                </td>
+                        </tr>
+";
+                                        if($switch_list){$switch_list = 0;}
+                                        else{$switch_list = 1;}
+                                }
+                        }
+                        echo "
+                </table>
+                <br>
+        </div>
 ";
 		}
 		$db->close();
-	}
 ?>
 <script>
+	var tabname = "<?php echo $_POST['tabname']; ?>";
+	if(tabname){showUserElement(tabname);}
+	else{showUserElement('detailsuser');}
+
 	$('#expires').datetimepicker({
 		lang:'en',
 		step:10,
 		format:'Y-m-d H:i:00'
 	});
 </script>
+<?php
+	}
+?>

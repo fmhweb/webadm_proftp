@@ -13,8 +13,8 @@
 		echo "<div class=\"pageindex\">\n";
 		if($page == 1){$class = "pageindexactive";}
 		else{$class = "pageindex";}
-		echo "<span class=\"$class\" onclick=\"showTab('$pagename','$tabname','1','$action');\">1</span>\n";
 		if($pages > 1){
+			echo "<span class=\"$class\" onclick=\"showTab('$pagename','$tabname','1','$action','');\">1</span>\n";
 			$start_page = $page - 2;
 			$max_page = $page + 2;
 			if($start_page > $pages - 3 && $pages > 4){$start_page = $pages - 4;}
@@ -26,12 +26,12 @@
 	                for($i = $start_page; $i <= $max_page; $i++){
 				if($i == $page){$class = "pageindexactive";}
 				else{$class = "pageindex";}
-                	        echo "<span class=\"$class\" onclick=\"showTab('$pagename','$tabname','$i','$action');\">$i</span>\n";
+                	        echo "<span class=\"$class\" onclick=\"showTab('$pagename','$tabname','$i','$action','');\">$i</span>\n";
         	        }
 			if($max_page < ($pages - 1)){echo "...";}
 			if($page == $pages){$class = "pageindexactive";}
 			else{$class = "pageindex";}
-			echo "<span class=\"$class\" onclick=\"showTab('$pagename','$tabname','$pages','$action');\">$pages</span>\n";
+			echo "<span class=\"$class\" onclick=\"showTab('$pagename','$tabname','$pages','$action','');\">$pages</span>\n";
 		}
 		echo "</div>\n";
         }

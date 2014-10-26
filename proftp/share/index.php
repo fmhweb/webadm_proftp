@@ -13,7 +13,6 @@
 	<link href="css/style.css" type="text/css" rel="stylesheet" />
 	<link href="css/jquery.datetimepicker.css" rel="stylesheet" type="text/css" />
 	<script src="js/functions.js"></script>
-	<script src="js/functions_folder.js"></script>
 	<script src="js/Chart.js"></script>
 	<script src="js/monitoring.js"></script>
 	<script src="js/jquery.js"></script>
@@ -30,8 +29,8 @@
 			<tr>
 				<td class="menutitle">WebADM Proftp</td>
 				<td class="menulink" id="linkhome" onclick="showPage('home');">Home</td>
-				<td class="menulink" id="linkfolder" onclick="showPage('folder');">Folder</td>
-				<td class="menulink" id="linkuser" onclick="showPage('user');">User</td>
+				<td class="menulink" id="linkfolder" onclick="showPage('folder');">Folders</td>
+				<td class="menulink" id="linkuser" onclick="showPage('user');">Users/Groups</td>
 				<td class="menulink" id="linklog" onclick="showPage('log');">Logs</td>
 				<td class="menulink" id="linkmonitoring" onclick="showPage('monitoring');">Monitoring</td>
 				<td class="menulink" id="linksettings" onclick="showPage('settings');">Settings</td>
@@ -45,8 +44,6 @@
 			<td class="resultright" id="resultright"></td>
 		</tr>
 	</table>
-	<div id="debug">
-	</div>
 <?php
 	}
 ?>

@@ -1,8 +1,4 @@
-ALTER TABLE acl
-ADD CONSTRAINT FK_acl
-FOREIGN KEY (userid) REFERENCES users(userid)
-ON UPDATE CASCADE
-ON DELETE CASCADE;
+use webadm_proftp;
 
 ALTER TABLE quotalimits
 ADD CONSTRAINT FK_quotalimits
@@ -22,14 +18,49 @@ FOREIGN KEY (userid) REFERENCES users(userid)
 ON UPDATE CASCADE
 ON DELETE CASCADE;
 
-ALTER TABLE acl
-ADD CONSTRAINT FK_acl_path
+ALTER TABLE useracl
+ADD CONSTRAINT FK_useracl
+FOREIGN KEY (userid) REFERENCES users(userid)
+ON UPDATE CASCADE
+ON DELETE CASCADE;
+
+ALTER TABLE useracl
+ADD CONSTRAINT FK_useracl_path
 FOREIGN KEY (path) REFERENCES folders(path)
+ON UPDATE CASCADE
+ON DELETE CASCADE;
+
+ALTER TABLE useracl
+ADD CONSTRAINT FK_user_groupacl
+FOREIGN KEY (groupid) REFERENCES groups(groupid)
+ON UPDATE CASCADE
+ON DELETE CASCADE;
+
+ALTER TABLE groupacl
+ADD CONSTRAINT FK_groupacl
+FOREIGN KEY (groupid) REFERENCES groups(groupid)
+ON UPDATE CASCADE
+ON DELETE CASCADE;
+
+ALTER TABLE groupacl
+ADD CONSTRAINT FK_groupacl_path
+FOREIGN KEY (path) REFERENCES folders(path)
+ON UPDATE CASCADE
+ON DELETE CASCADE;
+
+ALTER TABLE groupmembers
+ADD CONSTRAINT FK_member_user
+FOREIGN KEY (userid) REFERENCES users(userid)
+ON UPDATE CASCADE
+ON DELETE CASCADE;
+
+ALTER TABLE groupmembers
+ADD CONSTRAINT FK_member_group
+FOREIGN KEY (groupid) REFERENCES groups(groupid)
 ON UPDATE CASCADE
 ON DELETE CASCADE;
 
 ALTER TABLE users AUTO_INCREMENT = 10000;
 ALTER TABLE groups AUTO_INCREMENT = 10000;
 
-SELECT sec_to_time(time_to_sec(datefield)- time_to_sec(datefield)%(15*60)) as intervals from tablename
-group by intervals
+INSERT INTO guiusers (username,created_by,created) VALUES ('webadm','init',NOW());

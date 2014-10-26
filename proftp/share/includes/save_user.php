@@ -48,12 +48,12 @@
 						$exitstr .= "<img src=\"images/accept.png\" />Pasword updated<br>";
 					}
 				}
-				$query = "SELECT members FROM groups WHERE groupid = 'ftpuser';";
+				$query = "SELECT members FROM groups WHERE groupid = 'webadm';";
                                 $result = $db->query($query);
 				if($db->num_rows($result) == 0){
-                                        $query = "INSERT INTO groups (groupid,created_by,created) VALUES ('ftpuser','init',NOW());";
+                                        $query = "INSERT INTO groups (groupid,type,created_by,created) VALUES ('webadm','init','webadm',NOW());";
                                         $result = $db->query($query);
-					$query = "SELECT members FROM groups WHERE groupid = 'ftpuser';";
+					$query = "SELECT members FROM groups WHERE groupid = 'webadm';";
 					$result = $db->query($query);
                                 }
 				if($db->num_rows($result) > 0){
@@ -69,7 +69,7 @@
 					if(!$member_found){
 						if($member_str){$member_str .= ",";}
 						$member_str .= trim($_POST['user']['userid']);
-						$query = "UPDATE groups SET members = '$member_str' WHERE groupid = 'ftpuser';";
+						$query = "UPDATE groups SET members = '$member_str' WHERE groupid = 'webadm';";
 						$result = $db->query($query);
 					}
                                 }
@@ -78,13 +78,13 @@
 			}
 			elseif($_POST['remove'] == 1){
 				if($_POST['level'] == 1){
-					echo "Delete user: <img src=\"images/accept.png\" onclick=\"remUser('".$_POST['user']['userid']."',2);\" /><img src=\"images/cross.png\" onclick=\"remUser('".$_POST['user']['userid']."',3);\" />";
+					echo "Delete user: <img src=\"images/accept.png\" onclick=\"remItem(event,'user','".$_POST['user']['userid']."',2);\" /><img src=\"images/cross.png\" onclick=\"remItem(event,'user','".$_POST['user']['userid']."',3);\" />";
 				}
 				elseif($_POST['level'] == 2){
 					$now = new DateTime();
 					$query = "DELETE FROM users WHERE userid = '".$_POST['user']['userid']."';";
 					$result = $db->query($query);
-					$query = "SELECT members FROM groups WHERE groupid = 'ftpuser';";
+					$query = "SELECT members FROM groups WHERE groupid = 'webadm';";
 					$result = $db->query($query);
 					if($db->num_rows($result) > 0){
 						$array = $db->fetch_array_assoc($result);
@@ -96,7 +96,7 @@
 								$member_str .= $member;
 							}
 						}
-						$query = "UPDATE groups SET members = '$member_str' WHERE groupid = 'ftpuser';";
+						$query = "UPDATE groups SET members = '$member_str' WHERE groupid = 'webadm';";
                                                 $result = $db->query($query);
 					}
 					echo "<img src=\"images/accept.png\" />User deleted ".$_POST['user']['userid']." - ".$now->format('Y-m-d H:i:s');

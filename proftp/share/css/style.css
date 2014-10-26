@@ -1,9 +1,10 @@
 html{
+	font-family:Times New Roman;
 	background-color:#E6E6E6;
 }
 
 body{
-	font-size:12px;
+	font-size:14px;
 }
 
 img{
@@ -15,7 +16,7 @@ a{
 }
 
 div.tabs{
-	font-size:12px;
+	font-size:13px;
 	background: rgb(63,76,107); /* Old browsers */
         background: -moz-linear-gradient(top,  rgba(63,76,107,1) 0%, rgba(96,108,136,1) 100%); /* FF3.6+ */
         background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(63,76,107,1)), color-stop(100%,rgba(96,108,136,1))); /* Chrome,Safari4+ */
@@ -144,15 +145,6 @@ td.resultright{
 	overflow:auto;
 }
 
-#debug{
-	opacity:0.7;
-	position:fixed;
-	margin-left:50%;
-	width:50%;
-	z-index:11;
-	background-color:#FFFFFF;
-}
-
 div.title{
 	text-align:center;
 	font-size:14px;
@@ -188,7 +180,7 @@ div.error{
 }
 
 span.infosmall{
-	font-size:11px;
+	font-size:12px;
 	color:gray;
 }
 
@@ -201,62 +193,100 @@ li.folder{
 	list-style-type: none;
 }
 
-table.detailstitle{
+table.list{
+	border-collapse: collapse;
+	border-spacing: 0;
 	width:93%;
 }
 
-th.detailstitle{
-	background-color:#F2F2F2;
-	padding:2px;
+tr.list0{
+	cursor:pointer;
+	background-color:#E0E0F8;
 }
 
-th.detailstitleleft{
+tr.list1{
+	cursor:pointer;
+}
+
+tr.list0:hover{
+	background-color:#CECEF6;
+}
+
+tr.list1:hover{
+	background-color:#CECEF6;
+}
+
+th.list{
+	color:#585858;
 	font-size:12px;
 	text-align:left;
 	background-color:#F2F2F2;
 	padding:2px;
 }
 
+td.list{
+	font-size:14px;
+        padding:2px;
+        border-bottom:1px solid #D8D8D8;
+}
+
+table.detailstitle{
+	width:500px;
+}
+
+th.detailstitle{
+	color:#585858;
+	font-size:12px;
+	padding:2px;
+}
+
+th.detailstitleleft{
+	color:#585858;
+	font-size:12px;
+	text-align:left;
+	padding:2px;
+}
+
 td.detailstitle{
 	font-size:12px;
-	background-color:#F2F2F2;
 	padding:2px;
 }
 
 td.detailsval{
-	font-size:12px;
-	padding:2px;
-	border-bottom:1px solid #D8D8D8;
+	vertical-align:top;
+	font-size:14px;
+	padding:5px;
 }
 
-td.detailstitletop{
-	background-color:#F2F2F2;
+td.detailsvalacl{
+	width:50px;
+	vertical-align:top;
+	padding:5px;
+}
+
+th.detailstitletop{
+	color:#585858;
+	font-size:12px;
 	padding:2px;
 	text-align:center;
 }
 
 td.detailsvaltop{
-	font-size:12px;
+	font-size:14px;
 	text-align:center;
 	padding:2px;
 }
 
-tr.list0{
-}
-
-tr.list1{
-	background-color:#E6E6E6;
-}
-
-tr.list0:hover{
-}
-
-tr.list1:hover{
+span.detailstitle{
+	color:#585858;
+	font-size:12px;
+	font-weight:bold;
 }
 
 input.details{
-	font-size:13px;
-	width:200px;
+	font-size:14px;
+	width:100%;
+	padding:3px;
 	border-top:1px solid #D8D8D8;
 	border-left:1px solid #D8D8D8;
 	border-right:1px solid #BDBDBD;
@@ -265,8 +295,9 @@ input.details{
 
 input.detailstop{
 	text-align:center;
-	font-size:13px;
+	font-size:14px;
 	width:200px;
+	padding:3px;
 	border-top:1px solid #D8D8D8;
 	border-left:1px solid #D8D8D8;
 	border-right:1px solid #BDBDBD;
@@ -274,8 +305,9 @@ input.detailstop{
 }
 
 input.detailsquota{
-	font-size:13px;
+	font-size:14px;
         width:150px;
+	padding:3px;
         border-top:1px solid #D8D8D8;
         border-left:1px solid #D8D8D8;
         border-right:1px solid #BDBDBD;
@@ -284,8 +316,9 @@ input.detailsquota{
 }
 
 textarea.details{
-	width:200px;
-	height:50px;
+	width:100%;
+	height:75px;
+	padding:3px;
 	border-top:1px solid #D8D8D8;
 	border-left:1px solid #D8D8D8;
 	border-right:1px solid #BDBDBD;
@@ -293,7 +326,10 @@ textarea.details{
 }
 
 select.details{
+	font-size:14px;
+	background-color:#FFFFFF;
 	width:200px;
+	padding:3px;
 	border-top:1px solid #D8D8D8;
 	border-left:1px solid #D8D8D8;
 	border-right:1px solid #BDBDBD;
@@ -373,7 +409,7 @@ select.filter{
 	padding-bottom:4px;
 	border:1px solid gray;
 	box-shadow: 2px 2px 1px #888888;
-	border-radius:25px;
+	border-radius:5px;
 	background-color:#FFFFFF;
 }
 
@@ -384,7 +420,7 @@ input.filter{
 	padding-bottom:4px;
 	border:1px solid gray;
 	box-shadow: 2px 2px 1px #888888;
-	border-radius:25px;
+	border-radius:5px;
 	background-color:#FFFFFF;
 }
 
@@ -397,7 +433,7 @@ span.filter{
 	padding-bottom:4px;
         border:1px solid gray;
         box-shadow: 2px 2px 1px #888888;
-        border-radius:25px;
+        border-radius:5px;
         backgrounf-color:#FFFFFF;
 }
 
@@ -427,10 +463,10 @@ div.drop{
 	visibility:hidden;
 	position:fixed;
         text-align:center;
-	font-size:12px;
+	font-size:14px;
         border:1px solid gray;
         box-shadow: 2px 2px 1px #888888;
-        border-radius:25px;
+        border-radius:5px;
         background-color:#FFFFFF;
 	z-index:10;
 }

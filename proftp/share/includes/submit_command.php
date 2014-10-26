@@ -26,6 +26,24 @@
 			}
 			echo $exitstr;
 		}
+		if($_POST['action'] == 2 && $_POST['path']){
+			$exitstr = 0;
+			$query = "INSERT INTO guicmds (command,params,created_by,created) VALUES ('FOLDER REM','".$_POST['path']."','".$_SESSION['login']['username']."',NOW());";
+			$result = $db->query($query);
+			if($db->last_id()){
+				$exitstr = $db->last_id();
+			}
+			echo $exitstr;
+		}
+		if($_POST['action'] == 3){
+			$exitstr = 0;
+			$query = "INSERT INTO guicmds (command,params,created_by,created) VALUES ('FOLDER RESCAN','','".$_SESSION['login']['username']."',NOW());";
+			$result = $db->query($query);
+			if($db->last_id()){
+				$exitstr = $db->last_id();
+			}
+			echo $exitstr;
+		}
 		$db->close();
 	}
 ?>

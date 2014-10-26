@@ -29,8 +29,8 @@ use vars qw(
 
 our $opt_verbose = undef;
 our %time = ();
-$time{'chart'}{'taken'} = 0;
-$time{'chart'}{'max'} = 60;
+$time{'rrd'}{'taken'} = 0;
+$time{'rrd'}{'max'} = 60;
 $time{'loop'}{'sleep'} = 5;
 our %paths = ();
 $paths{'log'} = "/var/log/webadm/proftp.log";
@@ -74,7 +74,7 @@ if(!$paths{'web'} || ! -d $paths{'web'}){
 
 $paths{'config'} = $paths{'web'}."/proftp/share/config/config.xml";
 $paths{'rrd'} = $paths{'web'}."/proftp/rrd";
-$paths{'charts'} = $paths{'web'}."/proftp/share/charts";
+$paths{'rrds'} = $paths{'web'}."/proftp/share/rrds";
 
 ## XML
 if(! -f $paths{'config'}){
@@ -122,6 +122,9 @@ while(1){
 		if($ref->{'command'} eq "FOLDER ADD"){
 			$cmdexitcode = add_folder(\$cmdresult,$ref->{'params'});
 		}
+		elsif($ref->{'command'} eq "FOLDER RESCAN"){
+			$cmdexitcode = add_folder();
+		}
 
 		if($cmdexitcode == 2){
 			$query = "UPDATE guicmds SET status = 2, result = '$cmdresult', completed = NOW() WHERE id = '".$ref->{'id'}."';";
@@ -138,10 +141,10 @@ while(1){
 	sleep $time{'loop'}{'sleep'};
 
 	$time{'loop'}{'taken'} = time - $time{'loop'}{'begin'};
-	$time{'chart'}{'taken'} += $time{'loop'}{'taken'};
-	if($time{'chart'}{'taken'} >= $time{'chart'}{'max'}){
+	$time{'rrd'}{'taken'} += $time{'loop'}{'taken'};
+	if($time{'rrd'}{'taken'} >= $time{'rrd'}{'max'}){
 		create_xfer_rrd();
-		$time{'chart'}{'taken'} = 0;
+		$time{'rrd'}{'taken'} = 0;
 	}
 }
 

@@ -31,7 +31,17 @@ var current_pagename = "home";
 var prev_pagename = "home";
 var current_details_id = "";
 var current_details_pagename = "";
-var current_acl_path = "";
+var current_details_tabname = "";
+var currentTabPagename = "home";
+var currentTabTabname = "";
+var currentTabPage = 1;
+var currentTabAction = 0;
+var currentTabParams = 0;
+var prevTabPagename = "home";
+var prevTabTabname = "";
+var prevTabPage = 1;
+var prevTabAction = 0;
+var prevTabParams = 0;
 var watchTimeout;
 var watchCommadCount = 0;
 var watchCommadCountMax = 10;
@@ -104,14 +114,24 @@ function showDropDown(id){
 	return;
 }
 
-function evalFilter(e,pagename,tabname,page,action){
+function evalFilter(e,pagename,tabname,page,action,params){
 	if(e.keyCode == 13){
-		showTab(pagename,tabname,page,action);
+		showTab(pagename,tabname,page,action,params);
 	}
 	return;
 }
 
-function showTab(pagename,tabname,page,action){
+function reloadTab(){
+	showTab(currentTabPagename,currentTabTabname,currentTabPage,-1,currentTabParams);
+	return;
+}
+
+function showPrevTab(){
+	showTab(prevTabPagename,prevTabTabname,prevTabPage,-1,prevTabParams);
+	return;
+}
+
+function showTab(pagename,tabname,page,action,params){
 	if (window.XMLHttpRequest){
                 xmlhttp = new XMLHttpRequest();
         }
@@ -127,18 +147,36 @@ function showTab(pagename,tabname,page,action){
 			}
                 }
         }
-	elResultTab = document.getElementById('resulttab');
-	formFilter = document.forms['formfilter'];
-	query = "includes/show_"+pagename+"_"+tabname+".php";
-	query_param = "pagename="+pagename+"&tabname="+tabname+"&page="+page+"&action="+action;
-	if(formFilter){
-		for(i = 0; i < formFilter.length;i++){
-			query_param += "&"+formFilter[i].name+"="+formFilter[i].value
+	if(pagename && tabname && page){
+		if(action == 0){expandResult(0);}
+		else if(action == -1){action = 0;}
+		if(action == 0){
+			prevTabPagename = currentTabPagename;
+			prevTabTabname = currentTabTabname;
+			prevTabPage = currentTabPage;
+			prevTabAction = currentTabAction;
+			prevTabParams = currentTabParams;
+
+			currentTabPagename = pagename;
+			currentTabTabname = tabname;
+			currentTabPage = page;
+			currentTabAction = action;
+			currentTabParams = params;
 		}
+
+		elResultTab = document.getElementById('resulttab');
+		formFilter = document.forms['formfilter'];
+		query = "includes/show_"+pagename+"_"+tabname+".php";
+		query_param = "pagename="+pagename+"&tabname="+tabname+"&page="+page+"&action="+action+"&params="+params;
+		if(formFilter){
+			for(i = 0; i < formFilter.length;i++){
+				query_param += "&"+formFilter[i].name+"="+formFilter[i].value
+			}
+		}
+		xmlhttp.open("POST",query,true);
+		xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+		xmlhttp.send(query_param);
 	}
-	xmlhttp.open("POST",query,true);
-	xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-	xmlhttp.send(query_param);
 	return;
 }
 
@@ -152,6 +190,7 @@ function watchCommand(id,command_id){
         xmlhttp.onreadystatechange=function(){
                 if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
 			if(xmlhttp.responseText){
+				watchCommadCount = 0;
 	                        el.innerHTML = xmlhttp.responseText;
 			}
 			else{
@@ -197,7 +236,7 @@ function calcBytes(bytes,id){
 	return;
 }
 
-function remAcl(userid,acl_path,level){
+function remAcl(nameid,type,acl_path,level){
 	if (window.XMLHttpRequest){
                 xmlhttp = new XMLHttpRequest();
         }
@@ -206,14 +245,14 @@ function remAcl(userid,acl_path,level){
         }
         xmlhttp.onreadystatechange=function(){
                 if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
-			elResultSave.innerHTML = xmlhttp.responseText;
-			if(level > 1){reloadDetails();}
+			response = xmlhttp.responseText;
+                        setTimeout(function(){document.getElementById("resultsaveacl").innerHTML = response;},200);
+			if(level > 1){reloadDetails('detailsacl');}
                 }
         }
-	if(userid && acl_path){
-        	elResultSave = document.getElementById("resultsaveacl");
+	if(nameid && acl_path){
 	        query = "includes/save_acl.php";
-        	query_param = "userid="+userid+"&path="+acl_path+"&remove=1&level="+level;
+        	query_param = "nameid="+nameid+"&type="+type+"&path="+acl_path+"&remove=1&level="+level;
 		xmlhttp.open("POST",query,true);
 		xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 		xmlhttp.send(query_param);
@@ -221,7 +260,29 @@ function remAcl(userid,acl_path,level){
 	return;
 }
 
-function addAcl(userid,usernew,acl_path){
+function addKey(keyid,userid,remove,level){
+        if (window.XMLHttpRequest){
+                xmlhttp = new XMLHttpRequest();
+        }
+        else{
+                xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        xmlhttp.onreadystatechange=function(){
+                if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
+                        response = xmlhttp.responseText;
+                        setTimeout(function(){document.getElementById("resultsavekey").innerHTML = response;},200);
+                        reloadDetails('detailskey');
+                }
+        }
+        query = "includes/add_user_key.php";
+        query_param = "keyid="+keyid+"&userid="+userid+"&level="+level+"&remove="+remove;
+        xmlhttp.open("POST",query,true);
+        xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+        xmlhttp.send(query_param);
+        return;
+}
+
+function addGroupMember(groupid,userid,remove,level){
 	if (window.XMLHttpRequest){
                 xmlhttp = new XMLHttpRequest();
         }
@@ -230,11 +291,34 @@ function addAcl(userid,usernew,acl_path){
         }
         xmlhttp.onreadystatechange=function(){
                 if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
-			elResultSave.innerHTML = xmlhttp.responseText;
-			if(usernew == 1){reloadDetails();}
+			response = xmlhttp.responseText;
+                        setTimeout(function(){document.getElementById("resultsavemembers").innerHTML = response;},200);
+                        reloadDetails('detailsmembers');
                 }
         }
-	if(usernew == 1){
+	query = "includes/add_group_member.php";
+	query_param = "groupid="+groupid+"&userid="+userid+"&level="+level+"&remove="+remove;
+	xmlhttp.open("POST",query,true);
+	xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+	xmlhttp.send(query_param);
+        return;
+}
+
+function addAcl(id,nameid,namenew,type,acl_path){
+	if (window.XMLHttpRequest){
+                xmlhttp = new XMLHttpRequest();
+        }
+        else{
+                xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        xmlhttp.onreadystatechange=function(){
+                if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
+			response = xmlhttp.responseText;
+                        setTimeout(function(){document.getElementById("resultsaveacl").innerHTML = response;},200);
+			if(namenew == 1){reloadDetails('detailsacl');}
+                }
+        }
+	if(namenew == 1){
 		read_acl = "false";
 		write_acl = "false";
 		delete_acl = "false";
@@ -245,19 +329,18 @@ function addAcl(userid,usernew,acl_path){
 		navigate_acl = "false";
 	}
 	else{
-		read_acl = document.getElementById("read"+userid).checked;
-                write_acl = document.getElementById("write"+userid).checked;
-                delete_acl = document.getElementById("delete"+userid).checked;
-                create_acl = document.getElementById("create"+userid).checked;
-                modify_acl = document.getElementById("modify"+userid).checked;
-                move_acl = document.getElementById("move"+userid).checked;
-                view_acl = document.getElementById("view"+userid).checked;
-                navigate_acl = document.getElementById("navigate"+userid).checked;
+		read_acl = document.getElementById("read"+id).checked;
+                write_acl = document.getElementById("write"+id).checked;
+                delete_acl = document.getElementById("delete"+id).checked;
+                create_acl = document.getElementById("create"+id).checked;
+                modify_acl = document.getElementById("modify"+id).checked;
+                move_acl = document.getElementById("move"+id).checked;
+                view_acl = document.getElementById("view"+id).checked;
+                navigate_acl = document.getElementById("navigate"+id).checked;
 	}
-	if(userid && acl_path){
-        	elResultSave = document.getElementById("resultsaveacl");
+	if(nameid && acl_path){
 	        query = "includes/save_acl.php";
-        	query_param = "userid="+userid+"&path="+acl_path+"&read="+read_acl+"&write="+write_acl+"&delete="+delete_acl+"&create="+create_acl+"&modify="+modify_acl+"&move="+move_acl+"&view="+view_acl+"&navigate="+navigate_acl+"&remove=0";
+        	query_param = "nameid="+nameid+"&type="+type+"&path="+acl_path+"&read="+read_acl+"&write="+write_acl+"&delete="+delete_acl+"&create="+create_acl+"&modify="+modify_acl+"&move="+move_acl+"&view="+view_acl+"&navigate="+navigate_acl+"&remove=0&namenew="+namenew;
 		xmlhttp.open("POST",query,true);
 		xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 		xmlhttp.send(query_param);
@@ -265,13 +348,7 @@ function addAcl(userid,usernew,acl_path){
 	return;
 }
 
-function showDebug(str){
-	elDebug = document.getElementById("debug");
-	//elDebug.innerHTML = str+"<br>"+elDebug.innerHTML;
-	return;
-}
-
-function remUser(userid,level){
+function remItem(e,pagename,nameid,level){
 	if (window.XMLHttpRequest){
                 xmlhttp = new XMLHttpRequest();
         }
@@ -280,13 +357,14 @@ function remUser(userid,level){
         }
         xmlhttp.onreadystatechange=function(){
                 if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
-                        if(xmlhttp.responseText == "1"){reloadPage();}
-                        else{elResultSave.innerHTML = xmlhttp.responseText;}
+			if(level > 1){reloadTab();}
+                        elResultSave.innerHTML = xmlhttp.responseText;
                 }
         }
+	e.stopPropagation();
         elResultSave = document.getElementById("resultremove");
-	query = "includes/save_user.php";
-        query_param = "user[userid]="+userid+"&remove=1&level="+level;
+	query = "includes/save_"+pagename+".php";
+        query_param = pagename+"["+pagename+"id]="+nameid+"&remove=1&level="+level;
 	xmlhttp.open("POST",query,true);
         xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
         xmlhttp.send(query_param);
@@ -302,8 +380,8 @@ function saveItem(pagename){
         }
         xmlhttp.onreadystatechange=function(){
                 if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
-			if(xmlhttp.responseText == "1"){reloadPage();}
-			else{elResultSave.innerHTML = xmlhttp.responseText;}
+			elResultSave.innerHTML = xmlhttp.responseText;
+			reloadTab();
 		}
 	}
 	elResultSave = document.getElementById("resultsave"+pagename);
@@ -313,7 +391,6 @@ function saveItem(pagename){
 	for(i = 0; i < formElement.length;i++){
 		query_param += "&"+formElement[i].name+"="+formElement[i].value
 	}
-	showDebug("Query: "+query+" - Params: "+query_param);
 	xmlhttp.open("POST",query,true);
 	xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 	xmlhttp.send(query_param);
@@ -355,7 +432,6 @@ function showPage(pagename){
 	elResultLeft = document.getElementById("resultleft");
 	query = "includes/show_"+pagename+".php";
 	query_param = "";
-	showDebug("Query: "+query+" - Params: "+query_param);
 	xmlhttp.open("POST",query,true);
 	xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 	xmlhttp.send(query_param);
@@ -377,19 +453,18 @@ function showHelp(pagename){
 	elResultRight = document.getElementById("resultright");
         query = "includes/help.php";
 	query_param = "pagename="+pagename;
-	showDebug("Query: "+query+" - Params: "+query_param);
         xmlhttp.open("POST",query,true);
 	xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
         xmlhttp.send(query_param);
         return;
 }
 
-function reloadDetails(){
-	showDetails(current_details_id,current_details_pagename);
+function reloadDetails(tabname){
+	showDetails(current_details_id,current_details_pagename,tabname);
 	return;
 }
 
-function showDetails(id,pagename){
+function showDetails(id,pagename,tabname){
 	expandResult(1);
         if (window.XMLHttpRequest){
                 xmlhttp = new XMLHttpRequest();
@@ -399,7 +474,6 @@ function showDetails(id,pagename){
         }
         xmlhttp.onreadystatechange=function(){
                 if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
-			showDebug(xmlhttp.responseText);
                         elResultRight.innerHTML = xmlhttp.responseText;
 			scripts = elResultRight.getElementsByTagName("script");
 			for(var i=0; i<scripts.length; i++){
@@ -410,10 +484,10 @@ function showDetails(id,pagename){
 	if(id && pagename){
 		current_details_id = id;
 		current_details_pagename = pagename;
+		current_details_tabname = tabname;
 		elResultRight = document.getElementById("resultright");
 		query = "includes/details_"+pagename+".php";
-		query_param = "id="+id;
-		showDebug("Query: "+query+" - Params: "+query_param);
+		query_param = "id="+id+"&tabname="+tabname;
 		xmlhttp.open("POST",query,true);
 		xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 		xmlhttp.send(query_param);
@@ -452,10 +526,138 @@ function showElement(id){
 	}
 }
 
+function showFolderElement(id){
+	$('#detailsfolder').css({'display':'none','visibility':'hidden'});
+	$('#detailsacl').css({'display':'none','visibility':'hidden'});
+	$('#'+id).css({'display':'block','visibility':'visible'});
+}
 
+function showUserElement(id){
+	$('#detailsuser').css({'display':'none','visibility':'hidden'});
+	$('#detailsquota').css({'display':'none','visibility':'hidden'});
+	$('#detailsacl').css({'display':'none','visibility':'hidden'});
+	$('#detailsmembers').css({'display':'none','visibility':'hidden'});
+	$('#detailskey').css({'display':'none','visibility':'hidden'});
+	$('#'+id).css({'display':'block','visibility':'visible'});
+}
 
+function showGroupElement(id){
+	$('#detailsgroup').css({'display':'none','visibility':'hidden'});
+	$('#detailsmembers').css({'display':'none','visibility':'hidden'});
+	$('#detailsacl').css({'display':'none','visibility':'hidden'});
+	$('#'+id).css({'display':'block','visibility':'visible'});
+}
 
+var prvFolderVal = new Array();
 
+function rescanFolder(id){
+	if (window.XMLHttpRequest){
+                xmlhttp = new XMLHttpRequest();
+        }
+        else{
+                xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        xmlhttp.onreadystatechange=function(){
+                if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
+                        if(xmlhttp.responseText > 0){
+                                watchCommand(id,xmlhttp.responseText);
+                        }
+                }
+        }
+	query = "includes/submit_command.php";
+	query_param = "action=3";
+	xmlhttp.open("POST",query,true);
+	xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+	xmlhttp.send(query_param);
+	return;
+}
 
+function addFolder(e,id,parent_path,name){
+	if (window.XMLHttpRequest){
+                xmlhttp = new XMLHttpRequest();
+        }
+        else{
+                xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+	xmlhttp.onreadystatechange=function(){
+                if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
+			if(xmlhttp.responseText > 0){
+				watchCommand(id,xmlhttp.responseText);
+			}
+                }
+        }
+	if(e.keyCode == 13){
+		if(parent_path && name){
+			query = "includes/submit_command.php";
+			query_param = "action=1&path="+parent_path+"/"+name;
+			xmlhttp.open("POST",query,true);
+			xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+			xmlhttp.send(query_param);
+		}
+	}
+        return;
+}
 
+function remFolder(id,path,layer){
+        if (window.XMLHttpRequest){
+                xmlhttp = new XMLHttpRequest();
+        }
+        else{
+                xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        xmlhttp.onreadystatechange=function(){
+                if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
+                        if(xmlhttp.responseText > 0){
+                                watchCommand(id,xmlhttp.responseText);
+                        }
+                }
+        }
+	if(id,path){
+		if(layer == 1){
+			$('#'+id).html("Delete folder: <img src=\"images/accept.png\" onclick=\"remFolder('"+id+"','"+path+"',2);\" /><img src=\"images/cross.png\" onclick=\"remFolder('"+id+"','"+path+"',3);\" />");
+		}
+		else if(layer == 2){
+			query = "includes/submit_command.php";
+			query_param = "action=2&path="+path;
+			xmlhttp.open("POST",query,true);
+			xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+			xmlhttp.send(query_param);
+		}
+		else if(layer == 3){
+			$('#'+id).html("<img src=\"images/cross.png\" />Operation cancelled");
+		}
+	}
+        return;
+}
 
+function showSubFolder(id,name,action,params){
+        if (window.XMLHttpRequest){
+                xmlhttp = new XMLHttpRequest();
+        }
+        else{
+                xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        xmlhttp.onreadystatechange=function(){
+                if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
+			prvFolderVal[id] = elIl.innerHTML;
+                        elIl.innerHTML += xmlhttp.responseText;
+                }
+        }
+        elIl = document.getElementById("folder"+id);
+        elFolderImg = document.getElementById("folderimg"+id);
+	if(elIl.title == "Expand"){
+		elFolderImg.src = imgMinus.src;
+		elIl.title = "Close";
+        	query = "includes/show_folder_tree.php";
+		query_param = "id="+id+"&action="+action+"&params="+params;
+	        xmlhttp.open("POST",query,true);
+		xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+	        xmlhttp.send(query_param);
+	}
+	else{
+		elFolderImg.src = imgPlus.src;
+		elIl.title = "Expand";
+		elIl.innerHTML = prvFolderVal[id];
+	}
+        return;
+}

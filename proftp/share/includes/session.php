@@ -21,24 +21,18 @@
 				$_SESSION['login']['edit_folder'] = 0;
 				$_SESSION['login']['edit_user'] = 0;
 				$_SESSION['login']['edit_settings'] = 0;
-				$_SESSION['login']['show_logs'] = 0;
-				$_SESSION['login']['show_dashboards'] = 0;
+				$_SESSION['login']['chart_animate'] = 0;
 				$_SESSION['login']['last_login'] = 0;
 				$_SESSION['login']['max_list_items'] = 0;
+				$_SESSION['login']['max_list_log_items'] = 0;
 				$_SESSION['loaded'] = 0;
 				if($db->num_rows($result) > 0){
 					while($array = $db->fetch_array_assoc($result)){
-						$_SESSION['login']['username'] = $array['username'];
-						$_SESSION['login']['edit_folder'] = $array['edit_folder'];
-						$_SESSION['login']['edit_user'] = $array['edit_user'];
-						$_SESSION['login']['edit_settings'] = $array['edit_settings'];
-						$_SESSION['login']['show_logs'] = $array['show_logs'];
-						$_SESSION['login']['show_dashboards'] = $array['show_dashboards'];
-						$_SESSION['login']['last_login'] = $array['last_login'];
-						$_SESSION['login']['max_list_items'] = $array['max_list_items'];
-						$_SESSION['login']['max_list_log_items'] = $array['max_list_log_items'];
-						$_SESSION['loaded'] = 1;
+						foreach($array as $key => $val){
+							$_SESSION['login'][$key] = $val;
+						}
 					}
+					$_SESSION['loaded'] = 1;
 				}
 				$db->close();
 			}
